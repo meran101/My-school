@@ -9,7 +9,8 @@
     "imwdaz3lypzu",
     "imwdaz3lyq5b",
     "imwdaz3lyr34",
-    "imwdaz3lysmg"
+    "imwdaz3lysmg",
+    "imwdy9voe17o"
   ],
   "map": {
     "imwdaz3ly0e3": {
@@ -335,6 +336,18 @@
       "id": "imwdazkcctlk",
       "title": "صفحة جديدة",
       "blocks": []
+    },
+    "imwdy9voe17o": {
+      "id": "imwdy9voe17o",
+      "title": "اعرف عنا",
+      "blocks": [
+        {
+          "t": "chat",
+          "title": "اسألنا عن المدرسة",
+          "text": "مساعد ذكي يجيب عن أسئلتك حول المدرسة اعتماداً على محتوى هذا الموقع.",
+          "ai": true
+        }
+      ]
     }
   },
   "members": [
@@ -342,22 +355,6 @@
       "id": "imwdjx8710qk",
       "name": "محمد شريف",
       "role": "admin"
-    },
-    {
-      "id": "imwdk2rhv0oi",
-      "name": "محمد مازن",
-      "role": "teacher",
-      "subject": "الرياضيات",
-      "perms": {
-        "imwdaz3ly7zk": {
-          "img": true,
-          "text": false
-        },
-        "imwdaz3lyf6v": {},
-        "imwdaz3lynlh": {},
-        "imwdaz3lypzu": {}
-      },
-      "joined": "2026-11-12"
     }
   ],
   "codes": {
@@ -431,5 +428,6 @@
   "schoolImg": {
     "src": "",
     "pos": "center"
-  }
+  },
+  "aboutSeeded": true
 }
