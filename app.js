@@ -1,8 +1,14 @@
 const $ = s => document.querySelector(s);
 const TODAY = new Date().toISOString().slice(0, 10);
-let D, token = localStorage.gh_token || '', editing = !!token, dirty = false, _n = 0;
+let D, ORIG, CTX, token = localStorage.gh_token || '', me = JSON.parse(localStorage.gh_me || 'null'), dirty = false, _n = 0;
+if (token && !me) { token = ''; localStorage.removeItem('gh_token'); } // جلسة قديمة بلا اسم: يلزم تسجيل الدخول من جديد
+let editing = !!(token && me);
 let cfg = JSON.parse(localStorage.gh_cfg || 'null') || guess();
 const pv = {}; // معاينة الصور المرفوعة قبل أن يعيد GitHub Pages بناء الموقع
+const SUBJECTS = ['اللغة العربية', 'اللغة الإنجليزية', 'التربية الإسلامية', 'الرياضيات', 'الفيزياء', 'الكيمياء', 'الأحياء'];
+const ACTS = [['text', 'تعديل النصوص'], ['img', 'إضافة صور'], ['file', 'رفع ملفات وروابط'], ['add', 'إضافة عناصر وصفحات'], ['del', 'حذف']];
+// الصلاحية المطلوبة لكل زر ('admin' = للمدير فقط)
+const ACT = { img: 'img', clr: 'img', upfile: 'file', add: 'add', addpick: 'add', up: 'add', down: 'add', delb: 'del', del: 'del', addmenu: 'admin', mup: 'admin', mdown: 'admin', mdel: 'admin', mkcode: 'admin', delmember: 'admin' };
 
 function guess() {
   const h = location.hostname, gh = h.endsWith('.github.io');
@@ -13,15 +19,38 @@ const nl = s => e(s).replace(/\n/g, '<br>');
 const im = s => e(pv[s] || s);
 const safe = u => /^(https?:\/\/|tel:|mailto:|[\w\/.\-%]+$)/.test(u) ? e(u) : '#';
 const uid = () => 'i' + Date.now().toString(36) + (_n++).toString(36) + Math.random().toString(36).slice(2, 4);
+const clone = o => JSON.parse(JSON.stringify(o));
 const gp = k => k.reduce((o, x) => o[x], D);
 const get = p => gp(p.split('.'));
 const set = (p, v) => { const k = p.split('.'), l = k.pop(); gp(k)[l] = v; };
 const b64 = s => btoa(unescape(encodeURIComponent(s)));
-const ED = () => editing && !!token;
+const isAdmin = () => !!me && me.role === 'admin';
+const ED = () => editing && !!token && !!me;
 
-function toast(m) { const t = $('#toast'); t.textContent = m; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 3500); }
+function toast(m) { const t = $('#toast'); t.textContent = m; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 4000); }
 
-/* ---------- تحويل البيانات القديمة تلقائياً إلى نظام الصفحات والعناصر ---------- */
+/* ---------- التشفير: رمز كل مادة يفتح مفتاح الحفظ للمدرس ---------- */
+const enc = new TextEncoder(), dec = new TextDecoder();
+const toB = u => btoa(String.fromCharCode(...new Uint8Array(u)));
+const fromB = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+const norm = s => s.toUpperCase().replace(/[\s-]/g, '');
+async function keyOf(code, salt) {
+  const m = await crypto.subtle.importKey('raw', enc.encode(norm(code)), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: 250000, hash: 'SHA-256' }, m, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+}
+async function seal(code, text) {
+  const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+  return { salt: toB(salt), iv: toB(iv), ct: toB(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await keyOf(code, salt), enc.encode(text))) };
+}
+async function unseal(code, v) {
+  try { return dec.decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromB(v.iv) }, await keyOf(code, fromB(v.salt)), fromB(v.ct))); } catch (x) { return null; }
+}
+function genCode() {
+  const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', r = crypto.getRandomValues(new Uint8Array(12));
+  return [...r].map(x => A[x % 32]).join('').replace(/(.{4})(?=.)/g, '$1-');
+}
+
+/* ---------- البيانات: تحويل وتجهيز ---------- */
 function migrate(o) {
   if (o.map) return o;
   const map = {}, mk = (title, blocks) => { const id = uid(); map[id] = { id, title, blocks }; return id; };
@@ -38,15 +67,57 @@ function migrate(o) {
   (o.pages || []).forEach(p => menu.push(mk(p.title, [{ t: 'p', text: p.text }, ...p.images.map(s => ({ t: 'img', src: s, text: '' }))])));
   return { school: o.school, urgent: o.urgent, menu, map };
 }
+function ensure(d) {
+  d.members = d.members || []; d.codes = d.codes || {};
+  const mp = d.map;
+  if (!d.stageRoot) d.stageRoot = d.menu.find(id => mp[id].title === 'المرحلة') || d.menu[0];
+  if (!d.newsPage) d.newsPage = d.menu.find(id => mp[id].title === 'الأخبار') || '';
+  ((mp[d.stageRoot] || {}).blocks || []).filter(b => b.t === 'page').forEach(b => ((mp[b.ref] || {}).blocks || []).filter(x => x.t === 'page' && mp[x.ref]).forEach(x => { mp[x.ref].subject = mp[x.ref].subject || mp[x.ref].title; }));
+  return d;
+}
 function removePage(id) { const p = D.map[id]; if (!p) return; p.blocks.forEach(b => b.t === 'page' && removePage(b.ref)); delete D.map[id]; }
 const parentOf = id => Object.values(D.map).find(p => p.blocks.some(b => b.t === 'page' && b.ref === id));
+const stages = () => ((D.map[D.stageRoot] || {}).blocks || []).filter(b => b.t === 'page').map(b => b.ref);
+const scopes = () => [...stages().map(id => [id, D.map[id].title]), ...(D.newsPage && D.map[D.newsPage] ? [[D.newsPage, D.map[D.newsPage].title]] : [])];
+
+/* ---------- الصلاحيات (تُطبَّق في الواجهة) ---------- */
+function scopeOf(pid) {
+  let id = pid, prev = null;
+  for (let n = 0; id && n < 30; n++) {
+    if (id === D.newsPage) return { scope: id, ok: true };
+    if (stages().includes(id)) return { scope: id, ok: !!prev && ((D.map[prev] || {}).subject || (D.map[prev] || {}).title) === me.subject };
+    prev = id; const par = parentOf(id); id = par && par.id;
+  }
+  return null;
+}
+function can(action, pid = CTX) {
+  if (!me) return false;
+  if (me.role === 'admin') return true;
+  const s = scopeOf(pid); if (!s || !s.ok) return false;
+  const m = D.members.find(x => x.id === me.id);
+  return !!(m && m.perms && m.perms[s.scope] && m.perms[s.scope][action]);
+}
+const canPath = (action, p) => p.startsWith('map.') ? can(action, p.split('.')[1]) : isAdmin();
+const anyPerm = pid => ACTS.some(([k]) => can(k, pid));
+function guardOk() { // فحص احتياطي قبل الحفظ: المدرس لا يحفظ إلا ما يخص صلاحياته
+  if (!me || me.role === 'admin') return true;
+  const J = JSON.stringify;
+  if (['school', 'urgent', 'menu', 'codes', 'stageRoot', 'newsPage'].some(k => J(D[k]) !== J(ORIG[k]))) return false;
+  const om = Object.fromEntries(ORIG.members.map(m => [m.id, m]));
+  if (D.members.some(m => om[m.id] ? J(m) !== J(om[m.id]) : m.id !== me.id)) return false;
+  if (ORIG.members.some(m => !D.members.find(x => x.id === m.id))) return false;
+  return Object.keys(D.map).every(pid => J(D.map[pid]) === J(ORIG.map[pid]) || anyPerm(pid));
+}
 
 /* ---------- عناصر قابلة للتعديل المباشر ---------- */
-const T = (tag, p, cls = '', ph = '') => ED()
+const T = (tag, p, cls = '', ph = '') => (ED() && canPath('text', p))
   ? `<${tag} class="ed ${cls}" contenteditable="plaintext-only" data-e="${p}" data-ph="${ph}">${e(get(p))}</${tag}>`
   : `<${tag} class="${cls}">${nl(get(p))}</${tag}>`;
-const eb = (a, attrs, label, cls = '') => ED() ? `<button class="eb ${cls}" data-a="${a}" ${attrs}>${label}</button>` : '';
-const imgCtl = p => ED() ? `<span class="ec">${eb('img', `data-p="${p}"`, get(p) ? 'تغيير الصورة' : 'إضافة صورة')}${get(p) ? eb('clr', `data-p="${p}"`, 'إزالة الصورة', 'dn') : ''}</span>` : '';
+const eb = (a, attrs, label, cls = '') => {
+  const need = ACT[a], ok = ED() && (need === 'admin' ? isAdmin() : need ? can(need) : true);
+  return ok ? `<button class="eb ${cls}" data-a="${a}" ${attrs}>${label}</button>` : '';
+};
+const imgCtl = p => { const c = eb('img', `data-p="${p}"`, get(p) ? 'تغيير الصورة' : 'إضافة صورة') + (get(p) ? eb('clr', `data-p="${p}"`, 'إزالة الصورة', 'dn') : ''); return c ? `<span class="ec">${c}</span>` : ''; };
 
 /* ---------- أنواع العناصر ---------- */
 const B = {
@@ -55,12 +126,13 @@ const B = {
   p: (b, p) => T('p', p + '.text', '', 'اكتب هنا'),
   img: (b, p) => `<figure>${b.src ? `<img src="${im(b.src)}" alt="${e(b.text)}" ${ED() ? '' : `data-zoom="${im(b.src)}"`}>` : ''}${imgCtl(p + '.src')}${T('figcaption', p + '.text', '', 'وصف الصورة')}</figure>`,
   card: (b, p) => `<article class="card">${b.src ? `<img src="${im(b.src)}" alt="">` : ''}<div class="cb">${imgCtl(p + '.src')}${T('time', p + '.date', '', 'التاريخ')}${T('h3', p + '.title', '', 'العنوان')}${T('p', p + '.text', '', 'النص')}</div></article>`,
-  btn: (b, p) => ED()
-    ? `<div class="btn">${T('span', p + '.text', '', 'نص الزر')}</div><div class="row"><input data-b="${p}.url" placeholder="الرابط (https://...)" value="${e(b.url)}">${eb('upfile', `data-p="${p}.url"`, 'رفع ملف')}</div>`
+  btn: (b, p) => ED() && (canPath('text', p) || can('file'))
+    ? `<div class="btn">${T('span', p + '.text', '', 'نص الزر')}</div>${can('file') ? `<div class="row"><input data-b="${p}.url" placeholder="الرابط (https://...)" value="${e(b.url)}">${eb('upfile', `data-p="${p}.url"`, 'رفع ملف')}</div>` : ''}`
     : `<a class="btn" href="${safe(b.url)}" target="_blank" rel="noopener">${e(b.text)}</a>`,
   page: (b, p, i) => {
     const c = D.map[b.ref]; if (!c) return '';
-    return ED() ? `<div class="bar c${i % 3}"><div>${T('b', `map.${b.ref}.title`, '', 'عنوان الصفحة')}<span>${c.blocks.length} عناصر</span></div><a class="eb" href="#p-${b.ref}">فتح وتعديل</a></div>`
+    return ED() && canPath('text', `map.${b.ref}.title`)
+      ? `<div class="bar c${i % 3}"><div>${T('b', `map.${b.ref}.title`, '', 'عنوان الصفحة')}<span>${c.blocks.length} عناصر</span></div><a class="eb" href="#p-${b.ref}">فتح وتعديل</a></div>`
       : `<a class="bar c${i % 3}" href="#p-${b.ref}"><b>${e(c.title)}</b><span>فتح</span></a>`;
   },
   hr: () => '<hr>'
@@ -72,10 +144,15 @@ const DEF = {
   hr: () => ({ t: 'hr' }), hero: () => ({ t: 'hero', title: 'عنوان كبير', text: '', src: '' }),
   page: () => { const id = uid(); D.map[id] = { id, title: 'صفحة جديدة', blocks: [] }; return { t: 'page', ref: id }; }
 };
+const kindOk = (k, pid) => isAdmin() || (k === 'hero' ? false : k === 'img' ? can('img', pid) : k === 'btn' ? can('file', pid) : true);
 
-const addBar = (pid, i) => ED() ? `<button class="addbar" data-a="addpick" data-pid="${pid}" data-i="${i}">+ إضافة هنا</button>` : '';
-const blk = (b, pid, i) => `<div class="blk t-${b.t}">${ED() ? `<div class="bc"><button class="eb" data-a="up" data-pid="${pid}" data-i="${i}" aria-label="للأعلى">▲</button><button class="eb" data-a="down" data-pid="${pid}" data-i="${i}" aria-label="للأسفل">▼</button><button class="eb dn" data-a="delb" data-pid="${pid}" data-i="${i}">حذف</button></div>` : ''}${B[b.t] ? B[b.t](b, `map.${pid}.blocks.${i}`, i) : ''}</div>${addBar(pid, i + 1)}`;
+const addBar = (pid, i) => ED() && can('add') ? `<button class="addbar" data-a="addpick" data-pid="${pid}" data-i="${i}">+ إضافة هنا</button>` : '';
+const blk = (b, pid, i) => {
+  const at = `data-pid="${pid}" data-i="${i}"`, c = eb('up', at + ' title="للأعلى"', '▲') + eb('down', at + ' title="للأسفل"', '▼') + eb('delb', at, 'حذف', 'dn');
+  return `<div class="blk t-${b.t}">${c ? `<div class="bc">${c}</div>` : ''}${B[b.t] ? B[b.t](b, `map.${pid}.blocks.${i}`, i) : ''}</div>${addBar(pid, i + 1)}`;
+};
 function pageView(pid) {
+  CTX = pid;
   const p = D.map[pid], par = parentOf(pid), hero = p.blocks[0] && p.blocks[0].t === 'hero';
   const head = `<div class="blk ph">${par ? `<a class="back" href="#p-${par.id}">‹ ${e(par.title)}</a>` : ''}${T('h1', `map.${pid}.title`, '', 'عنوان الصفحة')}</div>`;
   const bl = p.blocks.map((b, i) => blk(b, pid, i));
@@ -83,16 +160,53 @@ function pageView(pid) {
   if (!bl.length && !ED()) out.push('<p class="blk empty">هذه الصفحة فارغة حالياً.</p>');
   return out.join('');
 }
+
+/* ---------- حساب المدير وحساب المدرسين ---------- */
+const initial = n => e((n || '؟').trim()[0] || '؟');
+const profile = () => `<div class="prof"><div class="av big">${initial(me.name)}</div><div><h1>${e(me.name)}</h1><p>${me.role === 'admin' ? 'المدير' : 'مدرس ' + e(me.subject)}</p></div></div>`;
 function adminView() {
-  return token
-    ? `<section class="wrap"><h1>أنت مسجّل الدخول</h1><p>تنقّل بين الصفحات واضغط على أي نص لتعديله، واستخدم أزرار «إضافة» و«حذف» الظاهرة. ثم اضغط «حفظ ونشر» من الشريط السفلي.</p><button class="btn" data-a="logout">تسجيل الخروج</button></section>`
-    : `<section class="wrap adm"><h1>دخول المدير</h1>
-      <p>أدخل رمز الوصول (Token) الذي أنشأته من حساب GitHub. يُحفظ على هذا الجهاز فقط.</p>
-      <label>رمز الوصول<input id="tk" type="password" autocomplete="off"></label>
+  if (isAdmin()) {
+    const codes = JSON.parse(localStorage.gh_codes || '{}');
+    return `<section class="wrap adm">${profile()}
+    <h2>رموز المدرسين</h2><p class="hint">أعطِ كل مدرس رمز مادته. عند إنشاء رمز جديد يبطل الرمز القديم لمن يسجّل الدخول بعده.</p>
+    ${SUBJECTS.map(s => `<div class="row"><b class="grow">${e(s)}</b>${codes[s] ? `<code class="code">${e(codes[s])}</code><button class="eb" data-a="copycode" data-s="${e(s)}">نسخ</button>` : `<span class="empty">${D.codes[s] ? 'يوجد رمز (غير ظاهر على هذا الجهاز)' : 'لا يوجد رمز'}</span>`}<button class="eb" data-a="mkcode" data-s="${e(s)}">${D.codes[s] ? 'تجديد الرمز' : 'إنشاء رمز'}</button></div>`).join('')}
+    <h2>المدرسون والصلاحيات</h2>${membersAdmin()}
+    <p><button class="btn" data-a="save">حفظ ونشر</button> <button class="btn ghost" data-a="logout">تسجيل الخروج</button></p></section>`;
+  }
+  if (me) return `<section class="wrap"><h1>هذه الصفحة للمدير فقط</h1><a class="btn" href="#teachers">حساب المدرسين</a></section>`;
+  return `<section class="wrap adm"><h1>دخول المدير</h1>
+    <p>اكتب اسمك ورمز الوصول (Token) الذي أنشأته من حساب GitHub. يُحفظ على هذا الجهاز فقط.</p>
+    <label>الاسم<input id="an" autocomplete="off"></label>
+    <label>رمز الوصول<input id="tk" type="password" autocomplete="off"></label>
+    <details><summary>إعدادات متقدمة</summary>
       <label>اسم حساب GitHub<input id="ow" value="${e(cfg.owner)}"></label>
       <label>اسم المستودع (Repository)<input id="rp" value="${e(cfg.repo)}"></label>
-      <label>الفرع (Branch)<input id="br" value="${e(cfg.branch)}"></label>
-      <button class="btn" data-a="login">دخول</button></section>`;
+      <label>الفرع (Branch)<input id="br" value="${e(cfg.branch)}"></label></details>
+    <button class="btn" data-a="login">دخول</button></section>`;
+}
+function membersAdmin() {
+  const sc = scopes(), list = D.members.map((m, i) => [m, i]).filter(([m]) => m.role === 'teacher');
+  if (!list.length) return '<p class="empty">لم يسجّل أي مدرس بعد.</p>';
+  return list.map(([m, i]) => {
+    m.perms = m.perms || {}; sc.forEach(([id]) => { m.perms[id] = m.perms[id] || {}; });
+    return `<div class="sub"><div class="row"><div class="av">${initial(m.name)}</div><b class="grow">${e(m.name)} <small>(${e(m.subject)})</small></b><button class="eb dn" data-a="delmember" data-i="${i}">حذف العضو</button></div>
+      <div class="tbl"><table><tr><th></th>${ACTS.map(([, l]) => `<th>${l}</th>`).join('')}</tr>
+      ${sc.map(([id, l]) => `<tr><td>${e(l)}</td>${ACTS.map(([k]) => `<td><input type="checkbox" data-c="members.${i}.perms.${id}.${k}" ${m.perms[id][k] ? 'checked' : ''} aria-label="${e(l)}"></td>`).join('')}</tr>`).join('')}</table></div></div>`;
+  }).join('');
+}
+function teachersView() {
+  if (!me) return `<section class="wrap adm"><h1>حساب المدرسين</h1>
+    <p>اكتب اسمك واختر مادتك وأدخل الرمز الذي أعطاك إياه المدير.</p>
+    <label>الاسم<input id="tn" autocomplete="off"></label>
+    <label>المادة<select id="ts">${SUBJECTS.map(s => `<option>${e(s)}</option>`).join('')}</select></label>
+    <label>الرمز<input id="tc" autocomplete="off" placeholder="XXXX-XXXX-XXXX" dir="ltr"></label>
+    <button class="btn" data-a="tlogin">دخول</button></section>`;
+  const mine = me.role === 'teacher' ? D.members.find(x => x.id === me.id) : null;
+  const perm = mine ? scopes().map(([id, l]) => { const g = ACTS.filter(([k]) => mine.perms && mine.perms[id] && mine.perms[id][k]).map(x => x[1]); return `<li><b>${e(l)}:</b> ${g.length ? g.join('، ') : 'لا توجد صلاحيات بعد'}</li>`; }).join('') : '';
+  const ordered = [...D.members.filter(m => m.role === 'admin'), ...D.members.filter(m => m.role !== 'admin')];
+  return `<section class="wrap">${profile()}${mine ? `<h2>صلاحياتك</h2><ul class="perm">${perm}</ul><p class="hint">تعديلاتك تقتصر على صفحة مادتك داخل المراحل المسموحة لك.</p>` : ''}
+    <h2>أعضاء الموقع</h2><div class="mem">${ordered.map(m => `<div class="mc2"><div class="av">${initial(m.name)}</div><div><b>${e(m.name)}</b><span>${m.role === 'admin' ? 'المدير' : 'مدرس ' + e(m.subject)}</span></div></div>`).join('')}</div>
+    <p><button class="btn ghost" data-a="logout">تسجيل الخروج</button></p></section>`;
 }
 
 /* ---------- GitHub API ---------- */
@@ -105,6 +219,29 @@ async function put(path, content, msg) {
   if (g.ok) sha = (await g.json()).sha;
   const r = await gh(path, { method: 'PUT', body: JSON.stringify({ message: msg, content, branch: cfg.branch, sha }) });
   if (!r.ok) throw new Error(r.status);
+}
+function merge(base, mine, remote) { // يدمج تعديلاتي فوق آخر نسخة محفوظة حتى لا تُمحى تعديلات الآخرين
+  const out = clone(remote), J = JSON.stringify;
+  ['school', 'urgent', 'menu', 'codes', 'stageRoot', 'newsPage'].forEach(k => { if (J(mine[k]) !== J(base[k])) out[k] = mine[k]; });
+  const pm = (a, b, o) => new Set([...Object.keys(a), ...Object.keys(b)]).forEach(id => { if (J(b[id]) !== J(a[id])) { if (b[id] === undefined) delete o[id]; else o[id] = b[id]; } });
+  pm(base.map, mine.map, out.map);
+  const idx = l => Object.fromEntries((l || []).map(m => [m.id, m])), om = idx(out.members);
+  pm(idx(base.members), idx(mine.members), om); out.members = Object.values(om);
+  return out;
+}
+async function saveData(quiet) {
+  if (!guardOk()) { toast('بعض تعديلاتك خارج صلاحياتك ولم تُحفظ.'); return false; }
+  try {
+    const g = await gh('data.json'); if (!g.ok) throw 0;
+    const j = await g.json(); let remote = null;
+    try { remote = JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\n/g, ''))))); } catch (x) { }
+    const out = ensure(remote && remote.map ? merge(ORIG, D, remote) : clone(D));
+    const r = await gh('data.json', { method: 'PUT', body: JSON.stringify({ message: 'تحديث محتوى الموقع', content: b64(JSON.stringify(out, null, 2)), branch: cfg.branch, sha: j.sha }) });
+    if (!r.ok) throw 0;
+    D = out; ORIG = clone(out); dirty = false;
+    if (!quiet) { toast('تم الحفظ. ستظهر التغييرات للزوار خلال دقيقة تقريباً.'); render(1); }
+    return true;
+  } catch (x) { toast('فشل الحفظ. تحقق من الاتصال أو من صلاحيات الرمز.'); return false; }
 }
 function pickImage(cb) {
   const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*';
@@ -139,22 +276,28 @@ function pickFile(cb) {
   };
   i.click();
 }
+const persist = () => { localStorage.gh_token = token; localStorage.gh_cfg = JSON.stringify(cfg); localStorage.gh_me = JSON.stringify(me); };
 
 /* ---------- العرض ---------- */
 function render(keep) {
-  const y = scrollY, h = (location.hash || '').slice(1), admin = h === 'admin';
+  const y = scrollY, h = (location.hash || '').slice(1), special = h === 'admin' || h === 'teachers';
   const cur = h.startsWith('p-') && D.map[h.slice(2)] ? h.slice(2) : D.menu[0];
-  $('#app').innerHTML = admin ? adminView() : cur ? pageView(cur) : `<section class="wrap"><p class="empty">لا توجد صفحات بعد.</p>${eb('addmenu', '', '+ إضافة صفحة', 'add')}</section>`;
-  const br = $('#brand');
-  br.innerHTML = ED() ? `${T('span', 'school.name', '', 'اسم المدرسة')}<small>${T('span', 'school.subtitle', '', 'عنوان فرعي')}</small>` : `${e(D.school.name)}<small>${e(D.school.subtitle)}</small>`;
-  ED() ? br.removeAttribute('href') : br.setAttribute('href', '#p-' + D.menu[0]);
+  $('#app').innerHTML = h === 'admin' ? adminView() : h === 'teachers' ? teachersView() : cur ? pageView(cur) : `<section class="wrap"><p class="empty">لا توجد صفحات بعد.</p>${eb('addmenu', '', '+ إضافة صفحة', 'add')}</section>`;
+  const br = $('#brand'), adm = ED() && isAdmin();
+  br.innerHTML = adm ? `${T('span', 'school.name', '', 'اسم المدرسة')}<small>${T('span', 'school.subtitle', '', 'عنوان فرعي')}</small>` : `${e(D.school.name)}<small>${e(D.school.subtitle)}</small>`;
+  adm ? br.removeAttribute('href') : br.setAttribute('href', '#p-' + D.menu[0]);
   document.title = D.school.name;
-  $('#ticker').innerHTML = ED() ? `<b>عاجل</b>${T('span', 'urgent', '', 'اكتب الخبر العاجل هنا (اتركه فارغاً لإخفائه)')}` : D.urgent ? `<b>عاجل</b><span>${e(D.urgent)}</span>` : '';
-  $('#drawer').innerHTML = D.menu.map((id, k) => `<div class="mi"><a href="#p-${id}" class="${!admin && id === cur ? 'on' : ''}">${e(D.map[id].title)}</a>${ED() ? `<span class="mc"><button data-a="mup" data-i="${k}" aria-label="أعلى">▲</button><button data-a="mdown" data-i="${k}" aria-label="أسفل">▼</button><button class="dn" data-a="mdel" data-i="${k}" aria-label="حذف">✕</button></span>` : ''}</div>`).join('')
-    + (ED() ? `<a href="#" data-a="addmenu">+ إضافة صفحة جديدة</a>` : '') + `<hr><a href="#admin" class="${admin ? 'on' : ''}">${token ? 'حساب المدير' : 'دخول المدير'}</a>`;
+  $('#ticker').innerHTML = adm ? `<b>عاجل</b>${T('span', 'urgent', '', 'اكتب الخبر العاجل هنا (اتركه فارغاً لإخفائه)')}` : D.urgent ? `<b>عاجل</b><span>${e(D.urgent)}</span>` : '';
+  $('#drawer').innerHTML = D.menu.map((id, k) => `<div class="mi"><a href="#p-${id}" class="${!special && id === cur ? 'on' : ''}">${e(D.map[id].title)}</a>${adm ? `<span class="mc"><button data-a="mup" data-i="${k}" aria-label="أعلى">▲</button><button data-a="mdown" data-i="${k}" aria-label="أسفل">▼</button><button class="dn" data-a="mdel" data-i="${k}" aria-label="حذف">✕</button></span>` : ''}</div>`).join('')
+    + (adm ? `<a href="#" data-a="addmenu">+ إضافة صفحة جديدة</a>` : '')
+    + `<hr><a href="#admin" class="${h === 'admin' ? 'on' : ''}">حساب المدير</a><a href="#teachers" class="sublink ${h === 'teachers' ? 'on' : ''}">حساب المدرسين</a>`;
   $('#foot').innerHTML = e(D.school.name);
+  let m = $('#me'); if (!m) { m = document.createElement('a'); m.id = 'me'; $('header').append(m); }
+  m.href = me && me.role === 'admin' ? '#admin' : '#teachers';
+  m.innerHTML = me ? `<span class="av">${initial(me.name)}</span><span class="nm">${e(me.name)}</span>` : '';
+  m.hidden = !me;
   let t = $('#tools'); if (!t) { t = document.createElement('div'); t.id = 'tools'; document.body.append(t); }
-  t.innerHTML = token ? `<button data-a="toggle">${editing ? 'إيقاف التحرير' : 'تشغيل التحرير'}</button>${editing ? '<button class="sv" data-a="save">حفظ ونشر</button>' : ''}` : '';
+  t.innerHTML = token && me ? `<button data-a="toggle">${editing ? 'إيقاف التحرير' : 'تشغيل التحرير'}</button>${editing ? '<button class="sv" data-a="save">حفظ ونشر</button>' : ''}` : '';
   menu(false); scrollTo(0, keep ? y : 0);
 }
 function menu(o) { $('#drawer').classList.toggle('open', o); $('#overlay').classList.toggle('open', o); $('#burger').classList.toggle('open', o); $('#burger').setAttribute('aria-expanded', o); }
@@ -173,30 +316,58 @@ addEventListener('hashchange', () => render());
 addEventListener('beforeunload', ev => { if (dirty) { ev.preventDefault(); ev.returnValue = ''; } });
 document.addEventListener('input', ev => {
   const t = ev.target;
-  if (t.dataset.b) { set(t.dataset.b, t.value); dirty = true; }
-  else if (t.dataset.e) { set(t.dataset.e, t.innerText.replace(/\n$/, '')); dirty = true; }
+  if (t.dataset.b && canPath('file', t.dataset.b)) { set(t.dataset.b, t.value); dirty = true; }
+  else if (t.dataset.e && canPath('text', t.dataset.e)) { set(t.dataset.e, t.innerText.replace(/\n$/, '')); dirty = true; }
+  else if (t.dataset.c && isAdmin()) { set(t.dataset.c, t.checked); dirty = true; }
 });
 document.addEventListener('click', async ev => {
   const el = ev.target.closest('[data-a],[data-zoom]'); if (!el) return;
-  const { a, p, i, pid, k, zoom } = el.dataset;
+  const { a, p, i, pid, k, s, zoom } = el.dataset;
   if (zoom) return modal(`<img src="${zoom}" alt="">`);
   ev.preventDefault();
+  const need = ACT[a];
+  if (need && !(need === 'admin' ? isAdmin() : can(need, pid || CTX))) return toast('ليست لديك صلاحية لهذا الإجراء.');
   const ch = f => () => { dirty = true; f(); render(1); };            // تعديل ثم إعادة رسم
   const mch = f => () => { dirty = true; f(); render(1); menu(true); }; // تعديل القائمة وإبقاؤها مفتوحة
   const bl = () => D.map[pid].blocks, n = +i;
   const swap = (arr, x, y) => { if (y >= 0 && y < arr.length) [arr[x], arr[y]] = [arr[y], arr[x]]; };
   const A = {
     login: async () => {
+      const nm = $('#an').value.trim(); if (!nm) return toast('اكتب اسمك أولاً.');
       token = $('#tk').value.trim(); cfg = { owner: $('#ow').value.trim(), repo: $('#rp').value.trim(), branch: $('#br').value.trim() || 'main' };
       const r = await gh('data.json');
       if (!r.ok) { token = ''; return toast('بيانات الدخول غير صحيحة'); }
-      localStorage.gh_token = token; localStorage.gh_cfg = JSON.stringify(cfg); editing = true;
-      toast('تم الدخول. أنت الآن في وضع التحرير.'); location.hash = '#p-' + D.menu[0];
+      let m = D.members.find(x => x.role === 'admin');
+      if (!m) { m = { id: uid(), name: nm, role: 'admin' }; D.members.unshift(m); } else m.name = nm;
+      me = { id: m.id, name: nm, role: 'admin' }; persist(); editing = true; dirty = true;
+      await saveData(true); toast('أهلاً ' + nm + '. أنت الآن في وضع التحرير.');
+      location.hash = '#p-' + D.menu[0]; render();
     },
-    logout: () => { token = ''; editing = false; localStorage.removeItem('gh_token'); render(); },
+    tlogin: async () => {
+      const nm = $('#tn').value.trim(), sub = $('#ts').value, code = $('#tc').value.trim();
+      if (!nm || !code) return toast('اكتب الاسم والرمز.');
+      const v = D.codes[sub]; if (!v) return toast('لم ينشئ المدير رمزاً لهذه المادة بعد.');
+      toast('جارٍ التحقق...');
+      const tk = await unseal(code, v); if (!tk) return toast('الرمز غير صحيح لهذه المادة.');
+      token = tk;
+      let m = D.members.find(x => x.role === 'teacher' && x.name === nm && x.subject === sub);
+      if (!m) { m = { id: uid(), name: nm, role: 'teacher', subject: sub, perms: {}, joined: TODAY }; D.members.push(m); dirty = true; }
+      me = { id: m.id, name: nm, role: 'teacher', subject: sub }; persist(); editing = true;
+      if (dirty) await saveData(true);
+      toast('أهلاً ' + nm); location.hash = '#teachers'; render();
+    },
+    logout: () => { token = ''; me = null; editing = false; ['gh_token', 'gh_me'].forEach(x => localStorage.removeItem(x)); render(); },
     toggle: () => { editing = !editing; render(1); },
-    addpick: () => modal(`<h2>ماذا تريد أن تضيف؟</h2><div class="pk">${KINDS.map(([kk, l]) => `<button class="eb" data-a="add" data-k="${kk}" data-pid="${pid}" data-i="${n}">${l}</button>`).join('')}</div>`),
-    add: () => { closeModal(); dirty = true; const b = DEF[k](); bl().splice(n, 0, b); render(1); if (k === 'img') pickImage(path => { b.src = path; render(1); }); },
+    mkcode: async () => {
+      const code = genCode(); toast('جارٍ إنشاء الرمز...');
+      D.codes[s] = await seal(code, token); dirty = true;
+      const c = JSON.parse(localStorage.gh_codes || '{}'); c[s] = code; localStorage.gh_codes = JSON.stringify(c);
+      render(1); toast('تم إنشاء الرمز. اضغط «حفظ ونشر» ليعمل مع المدرسين.');
+    },
+    copycode: () => { const c = JSON.parse(localStorage.gh_codes || '{}')[s]; navigator.clipboard && navigator.clipboard.writeText(c); toast('تم نسخ الرمز.'); },
+    delmember: () => { if (confirm('حذف هذا العضو؟')) ch(() => D.members.splice(n, 1))(); },
+    addpick: () => modal(`<h2>ماذا تريد أن تضيف؟</h2><div class="pk">${KINDS.filter(([kk]) => kindOk(kk, pid)).map(([kk, l]) => `<button class="eb" data-a="add" data-k="${kk}" data-pid="${pid}" data-i="${n}">${l}</button>`).join('')}</div>`),
+    add: () => { if (!kindOk(k, pid)) return toast('ليست لديك صلاحية لهذا النوع.'); closeModal(); dirty = true; const b = DEF[k](); bl().splice(n, 0, b); render(1); if (k === 'img') pickImage(path => { b.src = path; render(1); }); },
     up: ch(() => swap(bl(), n, n - 1)),
     down: ch(() => swap(bl(), n, n + 1)),
     delb: () => {
@@ -210,17 +381,13 @@ document.addEventListener('click', async ev => {
     mup: mch(() => swap(D.menu, n, n - 1)),
     mdown: mch(() => swap(D.menu, n, n + 1)),
     mdel: () => { if (confirm('حذف هذه الصفحة وكل ما بداخلها؟')) mch(() => { removePage(D.menu[n]); D.menu.splice(n, 1); })(); },
-    save: async () => {
-      toast('جارٍ الحفظ...');
-      try { await put('data.json', b64(JSON.stringify(D, null, 2)), 'تحديث محتوى الموقع'); dirty = false; toast('تم الحفظ. ستظهر التغييرات للزوار خلال دقيقة تقريباً.'); }
-      catch (x) { toast('فشل الحفظ. تحقق من صلاحيات الرمز.'); }
-    }
+    save: () => { toast('جارٍ الحفظ...'); return saveData(false); }
   };
   A[a] && A[a]();
 });
 
 fetch('data.json?' + Date.now()).then(r => r.json()).then(d => {
-  const old = !d.map; D = migrate(d);
+  const old = !d.map; D = ensure(migrate(d)); ORIG = clone(D);
   if (old && token) dirty = true; // البيانات القديمة حُوّلت: يلزم «حفظ ونشر» لتثبيتها
   render();
 }).catch(() => { $('#app').innerHTML = '<p class="wrap">تعذّر تحميل البيانات. افتح الموقع عبر GitHub Pages وليس كملف مباشر.</p>'; });

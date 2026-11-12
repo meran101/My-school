@@ -120,3 +120,26 @@ a.bar:hover b{color:var(--teal)}
 .mc button.dn{color:#b3261e}
 #drawer a[data-a]{color:var(--teal)}
 .row .btn{margin-top:0}
+
+/* ---------- الحسابات والأعضاء ---------- */
+#me{margin-inline-start:auto;display:flex;align-items:center;gap:8px;text-decoration:none;color:#fff;font-weight:600;font-size:.9rem}
+#me[hidden]{display:none}
+#me .nm{max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.av{width:36px;height:36px;border-radius:50%;background:var(--gold);color:#2b2106;display:inline-flex;align-items:center;justify-content:center;font-weight:800;flex:none}
+.av.big{width:72px;height:72px;font-size:2rem}
+.prof{display:flex;align-items:center;gap:16px;margin-bottom:10px}
+.prof h1{margin:0}.prof p{margin:0;color:#5b6877}
+.sublink{margin-inline-start:18px;font-size:.95rem}
+.hint{color:#5b6877;font-size:.92rem}
+.code{direction:ltr;background:#eef2f6;padding:4px 10px;border-radius:8px;font-size:1rem;letter-spacing:1px}
+.tbl{overflow-x:auto}
+.tbl table{border-collapse:collapse;width:100%;min-width:520px;font-size:.88rem}
+.tbl th,.tbl td{border:1px solid var(--line);padding:6px 8px;text-align:center}
+.tbl td:first-child{text-align:start;font-weight:600}
+.tbl input{width:20px;height:20px}
+.mem{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.mc2{display:flex;align-items:center;gap:12px;background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 2px 8px rgba(20,54,92,.08)}
+.mc2 span{display:block;color:#5b6877;font-size:.88rem}
+.perm{padding-inline-start:20px}
+.adm select{width:100%;font:inherit;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:#fff}
+.adm .btn{margin-inline-end:8px}
