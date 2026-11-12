@@ -19,6 +19,13 @@
         {
           "t": "page",
           "ref": "imwdazkcctlk"
+        },
+        {
+          "t": "hr"
+        },
+        {
+          "t": "h",
+          "text": ""
         }
       ]
     },
@@ -290,12 +297,7 @@
     "imwdaz3lysmg": {
       "id": "imwdaz3lysmg",
       "title": "تواصل معنا",
-      "blocks": [
-        {
-          "t": "p",
-          "text": "اكتب بيانات التواصل هنا"
-        }
-      ]
+      "blocks": []
     },
     "imwdazkcctlk": {
       "id": "imwdazkcctlk",
