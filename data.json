@@ -331,6 +331,14 @@
       "id": "imwdjx8710qk",
       "name": "محمد شريف",
       "role": "admin"
+    },
+    {
+      "id": "imwdk2rhv0oi",
+      "name": "محمد مازن",
+      "role": "teacher",
+      "subject": "الرياضيات",
+      "perms": {},
+      "joined": "2026-11-12"
     }
   ],
   "codes": {
