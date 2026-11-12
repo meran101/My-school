@@ -477,17 +477,20 @@ document.addEventListener('click', async ev => {
     delphoto: () => { const m = myMember(); if (m) { delete m.photo; dirty = true; render(1); } },
     ticket: () => modal(`<h2>تذكرة جديدة</h2><label class="fl">الاسم<input id="tname" maxlength="60" autocomplete="name"></label><label class="fl">الرسالة<textarea id="tmsg" rows="5" maxlength="1500"></textarea></label><input id="thp" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true"><button class="btn" data-a="sendticket">إرسال</button>`),
     sendticket: async () => {
+      if (window.__sending) return; // منع الإرسال المزدوج
       const nm = $('#tname').value.trim(), msg = $('#tmsg').value.trim();
       if (!nm || !msg) return toast('اكتب الاسم والرسالة.');
       if ($('#thp').value) return closeModal(); // فخ للروبوتات
       if (!D.inbox || !D.inbox.pub || !D.inbox.project) return toast('خدمة الرسائل غير مفعّلة بعد.');
       if (Date.now() - (+localStorage.gh_last || 0) < 60000) return toast('انتظر دقيقة قبل إرسال رسالة أخرى.');
+      window.__sending = true; const prevLast = localStorage.gh_last; localStorage.gh_last = Date.now(); el.disabled = true;
       try {
         const sl = await sealMsg(D.inbox.pub, { name: nm, msg }), sv = stringValue => ({ stringValue });
         const r = await fetch(`${fsUrl()}?key=${encodeURIComponent(D.inbox.key)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: { ek: sv(sl.ek), iv: sv(sl.iv), ct: sv(sl.ct), ts: sv(new Date().toISOString()) } }) });
         if (!r.ok) throw 0;
-        localStorage.gh_last = Date.now(); closeModal(); toast('تم إرسال رسالتك. شكراً لتواصلك معنا.');
-      } catch (x) { toast('تعذّر الإرسال. حاول لاحقاً.'); }
+        closeModal(); toast('تم إرسال رسالتك. شكراً لتواصلك معنا.');
+      } catch (x) { if (prevLast) localStorage.gh_last = prevLast; else localStorage.removeItem('gh_last'); el.disabled = false; toast('تعذّر الإرسال. حاول لاحقاً.'); }
+      finally { window.__sending = false; }
     },
     inboxcfg: async () => {
       const project = $('#fp').value.trim(), key = $('#fk').value.trim();
