@@ -318,7 +318,13 @@
     "imwdaz3lysmg": {
       "id": "imwdaz3lysmg",
       "title": "تواصل معنا",
-      "blocks": []
+      "blocks": [
+        {
+          "t": "ticket",
+          "title": "راسلنا",
+          "text": "لديك استفسار أو ملاحظة؟ اكتب لنا تذكرة وستصل رسالتك إلى إدارة المدرسة."
+        }
+      ]
     },
     "imwdazkcctlk": {
       "id": "imwdazkcctlk",
@@ -387,5 +393,6 @@
     }
   },
   "stageRoot": "imwdaz3lyo19",
-  "newsPage": "imwdaz3lypzu"
+  "newsPage": "imwdaz3lypzu",
+  "ticketSeeded": true
 }
