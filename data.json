@@ -27,37 +27,44 @@
           "t": "h",
           "text": ""
         }
-      ]
+      ],
+      "subject": "اللغة العربية"
     },
     "imwdaz3ly16c": {
       "id": "imwdaz3ly16c",
       "title": "اللغة الإنجليزية",
-      "blocks": []
+      "blocks": [],
+      "subject": "اللغة الإنجليزية"
     },
     "imwdaz3ly2ps": {
       "id": "imwdaz3ly2ps",
       "title": "التربية الإسلامية",
-      "blocks": []
+      "blocks": [],
+      "subject": "التربية الإسلامية"
     },
     "imwdaz3ly35b": {
       "id": "imwdaz3ly35b",
       "title": "الرياضيات",
-      "blocks": []
+      "blocks": [],
+      "subject": "الرياضيات"
     },
     "imwdaz3ly4aa": {
       "id": "imwdaz3ly4aa",
       "title": "الفيزياء",
-      "blocks": []
+      "blocks": [],
+      "subject": "الفيزياء"
     },
     "imwdaz3ly5nt": {
       "id": "imwdaz3ly5nt",
       "title": "الكيمياء",
-      "blocks": []
+      "blocks": [],
+      "subject": "الكيمياء"
     },
     "imwdaz3ly6an": {
       "id": "imwdaz3ly6an",
       "title": "الأحياء",
-      "blocks": []
+      "blocks": [],
+      "subject": "الأحياء"
     },
     "imwdaz3ly7zk": {
       "id": "imwdaz3ly7zk",
@@ -96,37 +103,44 @@
     "imwdaz3ly8xb": {
       "id": "imwdaz3ly8xb",
       "title": "اللغة العربية",
-      "blocks": []
+      "blocks": [],
+      "subject": "اللغة العربية"
     },
     "imwdaz3ly98b": {
       "id": "imwdaz3ly98b",
       "title": "اللغة الإنجليزية",
-      "blocks": []
+      "blocks": [],
+      "subject": "اللغة الإنجليزية"
     },
     "imwdaz3lyand": {
       "id": "imwdaz3lyand",
       "title": "التربية الإسلامية",
-      "blocks": []
+      "blocks": [],
+      "subject": "التربية الإسلامية"
     },
     "imwdaz3lyb2i": {
       "id": "imwdaz3lyb2i",
       "title": "الرياضيات",
-      "blocks": []
+      "blocks": [],
+      "subject": "الرياضيات"
     },
     "imwdaz3lycfh": {
       "id": "imwdaz3lycfh",
       "title": "الفيزياء",
-      "blocks": []
+      "blocks": [],
+      "subject": "الفيزياء"
     },
     "imwdaz3lydy9": {
       "id": "imwdaz3lydy9",
       "title": "الكيمياء",
-      "blocks": []
+      "blocks": [],
+      "subject": "الكيمياء"
     },
     "imwdaz3lye0s": {
       "id": "imwdaz3lye0s",
       "title": "الأحياء",
-      "blocks": []
+      "blocks": [],
+      "subject": "الأحياء"
     },
     "imwdaz3lyf6v": {
       "id": "imwdaz3lyf6v",
@@ -165,37 +179,44 @@
     "imwdaz3lygpm": {
       "id": "imwdaz3lygpm",
       "title": "اللغة العربية",
-      "blocks": []
+      "blocks": [],
+      "subject": "اللغة العربية"
     },
     "imwdaz3lyham": {
       "id": "imwdaz3lyham",
       "title": "اللغة الإنجليزية",
-      "blocks": []
+      "blocks": [],
+      "subject": "اللغة الإنجليزية"
     },
     "imwdaz3lyiog": {
       "id": "imwdaz3lyiog",
       "title": "التربية الإسلامية",
-      "blocks": []
+      "blocks": [],
+      "subject": "التربية الإسلامية"
     },
     "imwdaz3lyjwq": {
       "id": "imwdaz3lyjwq",
       "title": "الرياضيات",
-      "blocks": []
+      "blocks": [],
+      "subject": "الرياضيات"
     },
     "imwdaz3lyk6h": {
       "id": "imwdaz3lyk6h",
       "title": "الفيزياء",
-      "blocks": []
+      "blocks": [],
+      "subject": "الفيزياء"
     },
     "imwdaz3lylvg": {
       "id": "imwdaz3lylvg",
       "title": "الكيمياء",
-      "blocks": []
+      "blocks": [],
+      "subject": "الكيمياء"
     },
     "imwdaz3lymmz": {
       "id": "imwdaz3lymmz",
       "title": "الأحياء",
-      "blocks": []
+      "blocks": [],
+      "subject": "الأحياء"
     },
     "imwdaz3lynlh": {
       "id": "imwdaz3lynlh",
@@ -304,5 +325,15 @@
       "title": "صفحة جديدة",
       "blocks": []
     }
-  }
+  },
+  "members": [
+    {
+      "id": "imwdjx8710qk",
+      "name": "محمد شريف",
+      "role": "admin"
+    }
+  ],
+  "codes": {},
+  "stageRoot": "imwdaz3lyo19",
+  "newsPage": "imwdaz3lypzu"
 }
