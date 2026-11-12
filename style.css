@@ -355,3 +355,44 @@ a.bar:hover::after{transform:translateX(-8px)}
 .live .row .grow{flex:1;min-width:160px}
 @media(max-width:520px){.lv{border-radius:16px}.lv-nav{width:40px;height:40px;font-size:1.5rem}.lv-s figcaption{padding-bottom:56px}}
 @media(prefers-reduced-motion:reduce){.lv-s{transition:none}.lv-s.on img{animation:none}.lv.playing .lv-bar{animation:none}}
+
+
+/* ================= خلفيات ملونة متحركة لكل صفحة ================= */
+#bgfx{position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none}
+body{background:var(--pbg,#030620);background-image:none;color:#e6eefb;transition:background-color .7s}
+h1,h2,h3{color:#fff}
+.blk p,.hero p{color:#dbe6f7}
+.hint,.empty,.blk figcaption,.gal figcaption,.msgrow span,.mc2 span,.prof p,.bar span+*{color:#9db0cc}
+.back,.subs a,.bar span,.cb time,.msgrow time{color:var(--pa,#19d3ff)}
+.blk.ph h1::after{background:var(--pa,#19d3ff)}
+header{background:rgba(4,10,30,.72);border-bottom-color:var(--pa,#19d3ff)}
+#foot{background:rgba(4,10,30,.72);border-top-color:var(--pa,#19d3ff);background-image:none}
+.hero{background-color:rgba(8,16,40,.5);background-image:linear-gradient(150deg,rgba(255,255,255,.10),rgba(255,255,255,.02));border-bottom-color:var(--pa,#19d3ff)}
+
+/* أسطح زجاجية فوق الخلفية */
+.card,.bar,.panel,.msgrow,.mc2,.adm details,.sub{background:rgba(255,255,255,.07);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#e6eefb;box-shadow:inset 0 0 0 1px rgba(255,255,255,.13),0 14px 34px -16px rgba(0,0,0,.7)}
+.bar b,.cb h3,.panel h3,.msgrow b,.adm summary{color:#fff}
+a.bar:hover b{color:var(--pa,#19d3ff)}
+.panel,.chat{border-inline-start-color:var(--pa,#19d3ff)}
+.btn.ghost{color:var(--pa,#19d3ff);border-color:var(--pa,#19d3ff)}
+a.bar::after{color:var(--pa,#19d3ff)}
+
+/* حقول ونوافذ تبقى بيضاء مقروءة */
+input,textarea,select{color:#17212b}
+.box,#drawer,#savebar{color:var(--ink)}
+.box h2,.box h3{color:var(--navy)}
+.box .hint,#drawer .hint{color:#5b6877}
+.code,pre.rules{color:#17212b}
+.tbl th,.tbl td{border-color:rgba(255,255,255,.18)}
+.fl,.adm label{color:inherit}
+
+/* المساعد */
+.chatlog{background:rgba(0,0,0,.28);border-color:rgba(255,255,255,.12)}
+.cm.b{background:rgba(255,255,255,.1);color:#e6eefb;border-color:rgba(255,255,255,.14)}
+.cm.u{background:var(--pa,#19d3ff);color:#04101f}
+.chatlog:empty::before{color:#9db0cc}
+.chip{background:transparent;color:var(--pa,#19d3ff);border-color:var(--pa,#19d3ff)}
+.chip:hover{background:rgba(255,255,255,.08)}
+.lv-dots button.on,.lv-bar{background:var(--pa,#19d3ff)}
+
+@media print{#bgfx{display:none}body{background:#fff!important;color:#000}h1,h2,h3,.blk p,.bar b,.cb h3{color:#000!important}.card,.bar,.panel{background:#fff;box-shadow:none;border:1px solid #bbb}}
