@@ -276,13 +276,42 @@ async function loadMessages() {
 
 /* ---------- صفحة live: صور حية ينشرها المدير ---------- */
 const fmtT = s => { try { return new Date(s).toLocaleString('ar-IQ', { dateStyle: 'medium', timeStyle: 'short' }); } catch (x) { return ''; } };
+const LIVE = { i: 0, t: null, paused: matchMedia('(prefers-reduced-motion: reduce)').matches };
 function liveView() {
   const list = D.live.map((x, i) => [x, i]).reverse(); // الأحدث أولاً
-  const adm = isAdmin();
-  const add = ED() && adm ? `<p>${eb('liveadd', '', '+ إضافة صورة حية', 'add')}</p>` : adm ? '<p class="hint">شغّل «تشغيل التحرير» لإضافة صور حية.</p>' : '';
-  return `<section class="wrap live"><h1><span class="livedot"></span>live</h1><p class="hint">صور حية تُنشر مباشرة من المدير. تتحدث الصفحة تلقائياً.</p>${add}`
-    + (list.length ? `<div class="grid">${list.map(([x, i]) => `<figure class="card"><img src="${im(x.src)}" alt="" data-zoom="${im(x.src)}"><div class="cb"><time>${e(fmtT(x.ts))}</time>${T('p', `live.${i}.text`, '', 'وصف الصورة')}${eb('livedel', `data-i="${i}"`, 'حذف', 'dn')}</div></figure>`).join('')}</div>` : '<p class="empty">لا توجد صور حية بعد.</p>')
-    + '</section>';
+  const adm = isAdmin(), ed = ED() && adm;
+  const add = ed ? `<p>${eb('liveadd', '', '+ إضافة صورة حية', 'add')}</p>` : adm ? '<p class="hint">شغّل «تشغيل التحرير» لإضافة صور حية.</p>' : '';
+  const slider = list.length ? `<div class="lv" id="lv" role="region" aria-roledescription="عرض صور" aria-label="الصور الحية">
+    <div class="lv-track">${list.map(([x], k) => `<figure class="lv-s${k === 0 ? ' on' : ''}"><img src="${im(x.src)}" alt="${e(x.text)}" ${ED() ? '' : `data-zoom="${im(x.src)}"`}><figcaption><time>${e(fmtT(x.ts))}</time>${x.text ? `<p>${nl(x.text)}</p>` : ''}</figcaption></figure>`).join('')}</div>
+    <div class="lv-badge"><span class="livedot"></span>live</div>
+    ${list.length > 1 ? `<button class="lv-nav lv-prev" data-lv="prev" aria-label="السابقة">›</button><button class="lv-nav lv-next" data-lv="next" aria-label="التالية">‹</button><button class="lv-pp" data-lv="pp" aria-label="إيقاف أو تشغيل العرض التلقائي">❚❚</button>
+    <div class="lv-dots">${list.map((_, k) => `<button data-lv="${k}" aria-label="الصورة ${k + 1}" class="${k === 0 ? 'on' : ''}"></button>`).join('')}</div><div class="lv-bar"></div>` : ''}</div>` : '<p class="empty">لا توجد صور حية بعد.</p>';
+  const manage = ed && list.length ? `<h2>إدارة الصور (${list.length})</h2><p class="hint">تظهر كلها للزوار في عرض واحد يتبدّل كل 5 ثوانٍ.</p>${list.map(([x, i]) => `<div class="row"><img src="${im(x.src)}" alt="">${T('p', `live.${i}.text`, 'grow', 'وصف الصورة')}${eb('livedel', `data-i="${i}"`, 'حذف', 'dn')}</div>`).join('')}` : '';
+  return `<section class="wrap live"><h1>صور حية</h1>${add}${slider}${manage}</section>`;
+}
+function liveStart() {
+  clearInterval(LIVE.t);
+  const lv = $('#lv'); if (!lv) return;
+  const ss = [...lv.querySelectorAll('.lv-s')], ds = [...lv.querySelectorAll('.lv-dots button')], bar = lv.querySelector('.lv-bar'), pp = lv.querySelector('.lv-pp');
+  const n = ss.length; if (LIVE.i >= n) LIVE.i = 0;
+  const go = k => {
+    LIVE.i = (k + n) % n;
+    ss.forEach((x, j) => x.classList.toggle('on', j === LIVE.i)); ds.forEach((x, j) => x.classList.toggle('on', j === LIVE.i));
+    if (bar) { bar.style.animation = 'none'; void bar.offsetWidth; bar.style.animation = ''; }
+  };
+  const stop = () => clearInterval(LIVE.t);
+  const run = () => { stop(); if (n > 1 && !LIVE.paused) { lv.classList.add('playing'); LIVE.t = setInterval(() => { if (!document.body.contains(lv)) return stop(); if (!document.hidden) go(LIVE.i + 1); }, 5000); } else lv.classList.remove('playing'); if (pp) pp.textContent = LIVE.paused ? '▶' : '❚❚'; };
+  go(LIVE.i); run();
+  lv.addEventListener('click', ev => {
+    const b = ev.target.closest('[data-lv]'); if (!b) return; const v = b.dataset.lv;
+    if (v === 'pp') { LIVE.paused = !LIVE.paused; run(); return; }
+    go(v === 'next' ? LIVE.i + 1 : v === 'prev' ? LIVE.i - 1 : +v); run();
+  });
+  lv.addEventListener('mouseenter', () => { stop(); lv.classList.remove('playing'); });
+  lv.addEventListener('mouseleave', () => { go(LIVE.i); run(); });
+  let x0 = null;
+  lv.addEventListener('touchstart', ev => { x0 = ev.touches[0].clientX; }, { passive: true });
+  lv.addEventListener('touchend', ev => { if (x0 === null) return; const dx = ev.changedTouches[0].clientX - x0; x0 = null; if (Math.abs(dx) > 40) { go(LIVE.i + (dx < 0 ? 1 : -1)); run(); } }, { passive: true });
 }
 
 /* ---------- حساب المدير وحساب المدرسين ---------- */
@@ -435,6 +464,7 @@ function render(keep) {
   const y = scrollY, h = (location.hash || '').slice(1), special = h === 'admin' || h === 'teachers' || h === 'messages' || h === 'live';
   const cur = h.startsWith('p-') && D.map[h.slice(2)] ? h.slice(2) : D.menu[0];
   $('#app').innerHTML = h === 'admin' ? adminView() : h === 'teachers' ? teachersView() : h === 'messages' ? messagesView() : h === 'live' ? liveView() : cur ? pageView(cur) : `<section class="wrap"><p class="empty">لا توجد صفحات بعد.</p>${eb('addmenu', '', '+ إضافة صفحة', 'add')}</section>`;
+  if (h === 'live') liveStart();
   if (h === 'messages' && isAdmin()) loadMessages();
   const br = $('#brand'), adm = ED() && isAdmin();
   br.innerHTML = adm ? `${T('span', 'school.name', '', 'اسم المدرسة')}<small>${T('span', 'school.subtitle', '', 'عنوان فرعي')}</small>` : `${e(D.school.name)}<small>${e(D.school.subtitle)}</small>`;
