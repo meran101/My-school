@@ -422,3 +422,12 @@ input,textarea,select{color:#17212b}
 .card,.bar,.panel,.msgrow,.mc2,.adm details,.sub{backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(255,255,255,.085)}
 header{backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(4,10,30,.94)}
 .hero::before,.hero::after{animation:none}
+
+
+/* ---------- تنسيق إجابات المساعد (Markdown) ---------- */
+.cm.b .mp{margin:.25em 0}
+.cm.b ul,.cm.b ol{margin:.3em 0;padding-inline-start:22px}
+.cm.b code{direction:ltr;unicode-bidi:embed;background:rgba(255,255,255,.12);padding:0 5px;border-radius:5px;font-size:.9em}
+.cm.b pre{direction:ltr;text-align:left;background:rgba(0,0,0,.35);color:#e6eefb;padding:10px 12px;border-radius:10px;overflow:auto;font-size:.85rem;margin:.5em 0;white-space:pre}
+.cm.b .mh{display:block;margin:.5em 0 .1em;color:var(--pa,#19d3ff)}
+.chatlog{max-height:560px}
