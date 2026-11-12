@@ -92,3 +92,31 @@ div.bar:hover{transform:none}
 #tools:empty{display:none}
 #tools button{font:inherit;padding:10px 18px;border-radius:999px;border:0;background:#fff;color:var(--navy);box-shadow:0 4px 14px rgba(0,0,0,.25);cursor:pointer;font-weight:600}
 #tools .sv{background:var(--teal);color:#fff}
+
+/* ---------- نظام الصفحات والعناصر ---------- */
+.blk{max-width:980px;margin:0 auto;padding:6px 16px}
+.blk.t-hero{max-width:none;padding:0}
+.blk.t-hero+.addbar{margin-top:8px}
+.blk.ph{padding-top:22px}
+.blk.t-card{max-width:640px}
+.blk figure img{max-width:100%;border-radius:12px;display:block}
+.blk figcaption{color:#5b6877;font-size:.92rem}
+.blk .card img{height:auto;max-height:340px}
+.blk hr{border:0;border-top:2px solid var(--line)}
+.blk p{margin:.3em 0}
+a.bar{text-decoration:none;color:inherit}
+a.bar:hover b{color:var(--teal)}
+.back{display:inline-block;color:var(--teal);text-decoration:none;font-weight:600;margin-bottom:6px}
+.bc{display:flex;gap:4px;justify-content:flex-end;margin-bottom:2px}
+.bc .eb{margin:0;padding:3px 10px}
+.addbar{display:block;width:calc(100% - 32px);max-width:948px;margin:4px auto;border:2px dashed var(--teal);background:transparent;color:var(--teal);border-radius:8px;padding:6px;font:inherit;font-weight:600;cursor:pointer}
+.addbar:hover{background:rgba(27,127,121,.1)}
+.pk{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pk .eb{margin:0;padding:14px 8px;font-size:1rem}
+.mi{display:flex;align-items:center;gap:2px}
+.mi a{flex:1}
+.mc{display:flex;gap:2px}
+.mc button{border:0;background:var(--bg);border-radius:8px;width:34px;height:34px;cursor:pointer;font-size:.8rem}
+.mc button.dn{color:#b3261e}
+#drawer a[data-a]{color:var(--teal)}
+.row .btn{margin-top:0}
