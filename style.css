@@ -146,3 +146,12 @@ a.bar:hover b{color:var(--teal)}
 
 img.av{object-fit:cover;background:#dde3ea}
 .prof .eb{margin:6px 0 0 6px}
+
+/* ---------- لوحة التذكرة ورسائل التواصل ---------- */
+.panel{background:#fff;border-radius:14px;border-inline-start:8px solid var(--gold);padding:20px 22px;box-shadow:0 2px 10px rgba(20,54,92,.1)}
+.panel h3{margin:0 0 4px;color:var(--navy)}
+.fl{display:block;margin:10px 0;font-weight:600}
+.fl input,.fl textarea{display:block;width:100%;font:inherit;padding:9px 12px;border:1px solid var(--line);border-radius:8px;margin-top:4px}
+.hp{position:absolute;left:-9999px;opacity:0;height:0;width:0}
+.sublink.sub2{margin-inline-start:34px}
+.msg{margin:10px 0}

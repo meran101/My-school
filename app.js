@@ -8,7 +8,7 @@ const pv = {}; // معاينة الصور المرفوعة قبل أن يعيد 
 const SUBJECTS = ['اللغة العربية', 'اللغة الإنجليزية', 'التربية الإسلامية', 'الرياضيات', 'الفيزياء', 'الكيمياء', 'الأحياء'];
 const ACTS = [['text', 'تعديل النصوص'], ['img', 'إضافة صور'], ['file', 'رفع ملفات وروابط'], ['add', 'إضافة عناصر وصفحات'], ['del', 'حذف']];
 // الصلاحية المطلوبة لكل زر ('admin' = للمدير فقط)
-const ACT = { img: 'img', clr: 'img', upfile: 'file', add: 'add', addpick: 'add', up: 'add', down: 'add', delb: 'del', del: 'del', addmenu: 'admin', mup: 'admin', mdown: 'admin', mdel: 'admin', mkcode: 'admin', delmember: 'admin' };
+const ACT = { img: 'img', clr: 'img', upfile: 'file', add: 'add', addpick: 'add', up: 'add', down: 'add', delb: 'del', del: 'del', addmenu: 'admin', mup: 'admin', mdown: 'admin', mdel: 'admin', mkcode: 'admin', delmember: 'admin', msgcfg: 'admin', reloadmsgs: 'admin' };
 
 function guess() {
   const h = location.hostname, gh = h.endsWith('.github.io');
@@ -67,12 +67,18 @@ function migrate(o) {
   (o.pages || []).forEach(p => menu.push(mk(p.title, [{ t: 'p', text: p.text }, ...p.images.map(s => ({ t: 'img', src: s, text: '' }))])));
   return { school: o.school, urgent: o.urgent, menu, map };
 }
+const KEYS = ['school', 'urgent', 'menu', 'codes', 'stageRoot', 'newsPage', 'contactForm', 'ticketSeeded'];
 function ensure(d) {
   d.members = d.members || []; d.codes = d.codes || {};
   const mp = d.map;
   if (!d.stageRoot) d.stageRoot = d.menu.find(id => mp[id].title === 'المرحلة') || d.menu[0];
   if (!d.newsPage) d.newsPage = d.menu.find(id => mp[id].title === 'الأخبار') || '';
   ((mp[d.stageRoot] || {}).blocks || []).filter(b => b.t === 'page').forEach(b => ((mp[b.ref] || {}).blocks || []).filter(x => x.t === 'page' && mp[x.ref]).forEach(x => { mp[x.ref].subject = mp[x.ref].subject || mp[x.ref].title; }));
+  if (!d.ticketSeeded) {
+    const c = d.menu.find(id => mp[id].title === 'تواصل معنا');
+    if (c) mp[c].blocks.push(DEF.ticket());
+    d.ticketSeeded = true;
+  }
   return d;
 }
 function removePage(id) { const p = D.map[id]; if (!p) return; p.blocks.forEach(b => b.t === 'page' && removePage(b.ref)); delete D.map[id]; }
@@ -102,7 +108,7 @@ const anyPerm = pid => ACTS.some(([k]) => can(k, pid));
 function guardOk() { // فحص احتياطي قبل الحفظ: المدرس لا يحفظ إلا ما يخص صلاحياته
   if (!me || me.role === 'admin') return true;
   const J = JSON.stringify;
-  if (['school', 'urgent', 'menu', 'codes', 'stageRoot', 'newsPage'].some(k => J(D[k]) !== J(ORIG[k]))) return false;
+  if (KEYS.some(k => J(D[k]) !== J(ORIG[k]))) return false;
   const om = Object.fromEntries(ORIG.members.map(m => [m.id, m]));
   const nop = m => { const c = { ...m }; delete c.photo; return J(c); };
   if (D.members.some(m => om[m.id] ? (m.id === me.id ? nop(m) !== nop(om[m.id]) : J(m) !== J(om[m.id])) : m.id !== me.id)) return false;
@@ -136,16 +142,17 @@ const B = {
       ? `<div class="bar c${i % 3}"><div>${T('b', `map.${b.ref}.title`, '', 'عنوان الصفحة')}<span>${c.blocks.length} عناصر</span></div><a class="eb" href="#p-${b.ref}">فتح وتعديل</a></div>`
       : `<a class="bar c${i % 3}" href="#p-${b.ref}"><b>${e(c.title)}</b><span>فتح</span></a>`;
   },
+  ticket: (b, p) => `<div class="panel">${T('h3', p + '.title', '', 'عنوان اللوحة')}${T('p', p + '.text', '', 'نص اللوحة')}<button class="btn" data-a="ticket">إرسال تذكرة</button></div>`,
   hr: () => '<hr>'
 };
-const KINDS = [['h', 'عنوان'], ['p', 'نص'], ['img', 'صورة'], ['card', 'خبر أو بطاقة'], ['btn', 'زر رابط أو ملف'], ['page', 'صفحة داخلية جديدة'], ['hr', 'فاصل'], ['hero', 'غلاف كبير']];
+const KINDS = [['h', 'عنوان'], ['p', 'نص'], ['img', 'صورة'], ['card', 'خبر أو بطاقة'], ['btn', 'زر رابط أو ملف'], ['page', 'صفحة داخلية جديدة'], ['hr', 'فاصل'], ['hero', 'غلاف كبير'], ['ticket', 'لوحة تذكرة التواصل']];
 const DEF = {
   h: () => ({ t: 'h', text: '' }), p: () => ({ t: 'p', text: '' }), img: () => ({ t: 'img', src: '', text: '' }),
   card: () => ({ t: 'card', title: '', text: '', date: TODAY, src: '' }), btn: () => ({ t: 'btn', text: 'زر جديد', url: '' }),
-  hr: () => ({ t: 'hr' }), hero: () => ({ t: 'hero', title: 'عنوان كبير', text: '', src: '' }),
+  hr: () => ({ t: 'hr' }), ticket: () => ({ t: 'ticket', title: 'راسلنا', text: 'لديك استفسار أو ملاحظة؟ اكتب لنا تذكرة وستصل رسالتك إلى إدارة المدرسة.' }), hero: () => ({ t: 'hero', title: 'عنوان كبير', text: '', src: '' }),
   page: () => { const id = uid(); D.map[id] = { id, title: 'صفحة جديدة', blocks: [] }; return { t: 'page', ref: id }; }
 };
-const kindOk = (k, pid) => isAdmin() || (k === 'hero' ? false : k === 'img' ? can('img', pid) : k === 'btn' ? can('file', pid) : true);
+const kindOk = (k, pid) => isAdmin() || (k === 'hero' || k === 'ticket' ? false : k === 'img' ? can('img', pid) : k === 'btn' ? can('file', pid) : true);
 
 const addBar = (pid, i) => ED() && can('add') ? `<button class="addbar" data-a="addpick" data-pid="${pid}" data-i="${i}">+ إضافة هنا</button>` : '';
 const blk = (b, pid, i) => {
@@ -162,6 +169,45 @@ function pageView(pid) {
   return out.join('');
 }
 
+/* ---------- رسائل التواصل (عبر نموذج Google) ---------- */
+function parseFormLink(u) {
+  try {
+    const id = (u.match(/\/forms\/d\/e\/([\w-]+)/) || [])[1];
+    const ents = [...u.matchAll(/entry\.(\d+)=([^&]*)/g)].map(m => ({ k: 'entry.' + m[1], v: decodeURIComponent(m[2].replace(/\+/g, ' ')) }));
+    if (!id || ents.length < 2) return null;
+    const nm = ents.find(x => /اسم|name/i.test(x.v)) || ents[0];
+    const ms = ents.find(x => x !== nm && /رسال|msg|message/i.test(x.v)) || ents.find(x => x !== nm);
+    return { id, name: nm.k, msg: ms.k };
+  } catch (x) { return null; }
+}
+function parseCSV(t) {
+  const rows = []; let r = [], f = '', q = false;
+  for (let i = 0; i < t.length; i++) {
+    const c = t[i];
+    if (q) { if (c === '"') { if (t[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += c; }
+    else if (c === '"') q = true;
+    else if (c === ',') { r.push(f); f = ''; }
+    else if (c === '\n' || c === '\r') { if (c === '\r' && t[i + 1] === '\n') i++; r.push(f); f = ''; rows.push(r); r = []; }
+    else f += c;
+  }
+  if (f || r.length) { r.push(f); rows.push(r); }
+  return rows;
+}
+function messagesView() {
+  if (!isAdmin()) return '<section class="wrap"><h1>هذه الصفحة للمدير فقط</h1></section>';
+  if (!localStorage.gh_msgcsv) return '<section class="wrap"><h1>رسائل التواصل</h1><p class="empty">لم تُضبط الرسائل بعد. افتح «حساب المدير» وأدخل رابط جدول الإجابات.</p><a class="btn" href="#admin">حساب المدير</a></section>';
+  return '<section class="wrap"><h1>رسائل التواصل</h1><p><button class="eb" data-a="reloadmsgs">تحديث</button></p><div id="msgs"><p class="empty">جارٍ تحميل الرسائل...</p></div></section>';
+}
+async function loadMessages() {
+  const box = $('#msgs'); if (!box) return;
+  try {
+    const u = localStorage.gh_msgcsv, r = await fetch(u + (u.includes('?') ? '&' : '?') + 't=' + Date.now());
+    if (!r.ok) throw 0;
+    const rows = parseCSV(await r.text()).slice(1).filter(x => x[1] || x[2]).reverse();
+    box.innerHTML = rows.length ? `<p class="hint">${rows.length} رسالة، الأحدث أولاً.</p>` + rows.map(x => `<article class="card msg"><div class="cb"><time>${e(x[0])}</time><h3>${e(x[1])}</h3><p>${nl(x[2])}</p></div></article>`).join('') : '<p class="empty">لا توجد رسائل بعد.</p>';
+  } catch (x) { box.innerHTML = '<p class="empty">تعذّر تحميل الرسائل. تأكد أن الجدول منشور على الويب بصيغة CSV.</p>'; }
+}
+
 /* ---------- حساب المدير وحساب المدرسين ---------- */
 const initial = n => e((n || '؟').trim()[0] || '؟');
 const avatar = (m, big) => m && m.photo ? `<img class="av ${big ? 'big' : ''}" src="${im(m.photo)}" alt="">` : `<div class="av ${big ? 'big' : ''}">${initial(m && m.name)}</div>`;
@@ -174,6 +220,16 @@ function adminView() {
     return `<section class="wrap adm">${profile()}
     <h2>رموز المدرسين</h2><p class="hint">أعطِ كل مدرس رمز مادته. عند إنشاء رمز جديد يبطل الرمز القديم لمن يسجّل الدخول بعده.</p>
     ${SUBJECTS.map(s => `<div class="row"><b class="grow">${e(s)}</b>${codes[s] ? `<code class="code">${e(codes[s])}</code><button class="eb" data-a="copycode" data-s="${e(s)}">نسخ</button>` : `<span class="empty">${D.codes[s] ? 'يوجد رمز (غير ظاهر على هذا الجهاز)' : 'لا يوجد رمز'}</span>`}<button class="eb" data-a="mkcode" data-s="${e(s)}">${D.codes[s] ? 'تجديد الرمز' : 'إنشاء رمز'}</button></div>`).join('')}
+    <h2>إعداد رسائل التواصل</h2>
+    <details><summary>طريقة الإعداد (مرة واحدة)</summary><ol class="hint">
+      <li>افتح forms.google.com وأنشئ نموذجاً بسؤالين بهذا الترتيب: «الاسم» (إجابة قصيرة) ثم «الرسالة» (فقرة).</li>
+      <li>من تبويب «الردود» اربط النموذج بجدول Google Sheets.</li>
+      <li>في النموذج: القائمة ⋮ ثم «الحصول على رابط معبأ مسبقاً»، واكتب كلمة «اسم» في السؤال الأول وكلمة «رسالة» في الثاني، ثم انسخ الرابط والصقه أدناه.</li>
+      <li>في الجدول: ملف ثم مشاركة ثم «النشر على الويب»، اختر ورقة الردود وصيغة CSV، ثم انسخ الرابط والصقه أدناه.</li></ol></details>
+    <label>رابط النموذج المعبأ مسبقاً<input id="gf" dir="ltr" placeholder="https://docs.google.com/forms/d/e/..."></label>
+    <label>رابط جدول الإجابات (CSV)<input id="gc" dir="ltr" value="${e(localStorage.gh_msgcsv || '')}"></label>
+    <p class="hint">الحالة: ${D.contactForm ? 'النموذج مفعّل' : 'النموذج غير مفعّل'}، ${localStorage.gh_msgcsv ? 'رابط الرسائل محفوظ على هذا الجهاز' : 'رابط الرسائل غير محفوظ'}.</p>
+    <button class="eb" data-a="msgcfg">حفظ الإعداد</button>
     <h2>المدرسون والصلاحيات</h2>${membersAdmin()}
     <p><button class="btn" data-a="save">حفظ ونشر</button> <button class="btn ghost" data-a="logout">تسجيل الخروج</button></p></section>`;
   }
@@ -226,7 +282,7 @@ async function put(path, content, msg) {
 }
 function merge(base, mine, remote) { // يدمج تعديلاتي فوق آخر نسخة محفوظة حتى لا تُمحى تعديلات الآخرين
   const out = clone(remote), J = JSON.stringify;
-  ['school', 'urgent', 'menu', 'codes', 'stageRoot', 'newsPage'].forEach(k => { if (J(mine[k]) !== J(base[k])) out[k] = mine[k]; });
+  KEYS.forEach(k => { if (J(mine[k]) !== J(base[k])) out[k] = mine[k]; });
   const pm = (a, b, o) => new Set([...Object.keys(a), ...Object.keys(b)]).forEach(id => { if (J(b[id]) !== J(a[id])) { if (b[id] === undefined) delete o[id]; else o[id] = b[id]; } });
   pm(base.map, mine.map, out.map);
   const idx = l => Object.fromEntries((l || []).map(m => [m.id, m])), om = idx(out.members);
@@ -286,9 +342,10 @@ const persist = () => { localStorage.gh_token = token; localStorage.gh_cfg = JSO
 
 /* ---------- العرض ---------- */
 function render(keep) {
-  const y = scrollY, h = (location.hash || '').slice(1), special = h === 'admin' || h === 'teachers';
+  const y = scrollY, h = (location.hash || '').slice(1), special = h === 'admin' || h === 'teachers' || h === 'messages';
   const cur = h.startsWith('p-') && D.map[h.slice(2)] ? h.slice(2) : D.menu[0];
-  $('#app').innerHTML = h === 'admin' ? adminView() : h === 'teachers' ? teachersView() : cur ? pageView(cur) : `<section class="wrap"><p class="empty">لا توجد صفحات بعد.</p>${eb('addmenu', '', '+ إضافة صفحة', 'add')}</section>`;
+  $('#app').innerHTML = h === 'admin' ? adminView() : h === 'teachers' ? teachersView() : h === 'messages' ? messagesView() : cur ? pageView(cur) : `<section class="wrap"><p class="empty">لا توجد صفحات بعد.</p>${eb('addmenu', '', '+ إضافة صفحة', 'add')}</section>`;
+  if (h === 'messages' && isAdmin()) loadMessages();
   const br = $('#brand'), adm = ED() && isAdmin();
   br.innerHTML = adm ? `${T('span', 'school.name', '', 'اسم المدرسة')}<small>${T('span', 'school.subtitle', '', 'عنوان فرعي')}</small>` : `${e(D.school.name)}<small>${e(D.school.subtitle)}</small>`;
   adm ? br.removeAttribute('href') : br.setAttribute('href', '#p-' + D.menu[0]);
@@ -296,7 +353,7 @@ function render(keep) {
   $('#ticker').innerHTML = adm ? `<b>عاجل</b>${T('span', 'urgent', '', 'اكتب الخبر العاجل هنا (اتركه فارغاً لإخفائه)')}` : D.urgent ? `<b>عاجل</b><span>${e(D.urgent)}</span>` : '';
   $('#drawer').innerHTML = D.menu.map((id, k) => `<div class="mi"><a href="#p-${id}" class="${!special && id === cur ? 'on' : ''}">${e(D.map[id].title)}</a>${adm ? `<span class="mc"><button data-a="mup" data-i="${k}" aria-label="أعلى">▲</button><button data-a="mdown" data-i="${k}" aria-label="أسفل">▼</button><button class="dn" data-a="mdel" data-i="${k}" aria-label="حذف">✕</button></span>` : ''}</div>`).join('')
     + (adm ? `<a href="#" data-a="addmenu">+ إضافة صفحة جديدة</a>` : '')
-    + `<hr><a href="#admin" class="${h === 'admin' ? 'on' : ''}">حساب المدير</a><a href="#teachers" class="sublink ${h === 'teachers' ? 'on' : ''}">حساب المدرسين</a>`;
+    + `<hr><a href="#admin" class="${h === 'admin' ? 'on' : ''}">حساب المدير</a><a href="#teachers" class="sublink ${h === 'teachers' ? 'on' : ''}">حساب المدرسين</a>${isAdmin() ? `<a href="#messages" class="sublink sub2 ${h === 'messages' ? 'on' : ''}">رسائل التواصل</a>` : ''}`;
   $('#foot').innerHTML = e(D.school.name);
   let m = $('#me'); if (!m) { m = document.createElement('a'); m.id = 'me'; $('header').append(m); }
   m.href = me && me.role === 'admin' ? '#admin' : '#teachers';
@@ -373,6 +430,25 @@ document.addEventListener('click', async ev => {
     copycode: () => { const c = JSON.parse(localStorage.gh_codes || '{}')[s]; navigator.clipboard && navigator.clipboard.writeText(c); toast('تم نسخ الرمز.'); },
     myphoto: () => pickImage(path => { const m = myMember(); if (m) { m.photo = path; dirty = true; } render(1); }, true),
     delphoto: () => { const m = myMember(); if (m) { delete m.photo; dirty = true; render(1); } },
+    ticket: () => modal(`<h2>تذكرة جديدة</h2><label class="fl">الاسم<input id="tname" maxlength="60" autocomplete="name"></label><label class="fl">الرسالة<textarea id="tmsg" rows="5" maxlength="1500"></textarea></label><input id="thp" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true"><button class="btn" data-a="sendticket">إرسال</button>`),
+    sendticket: async () => {
+      const nm = $('#tname').value.trim(), msg = $('#tmsg').value.trim();
+      if (!nm || !msg) return toast('اكتب الاسم والرسالة.');
+      if ($('#thp').value) return closeModal(); // فخ للروبوتات
+      const f = D.contactForm; if (!f) return toast('خدمة الرسائل غير مفعّلة بعد.');
+      if (Date.now() - (+localStorage.gh_last || 0) < 60000) return toast('انتظر دقيقة قبل إرسال رسالة أخرى.');
+      try {
+        await fetch(`https://docs.google.com/forms/d/e/${f.id}/formResponse`, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ [f.name]: nm, [f.msg]: msg }) });
+        localStorage.gh_last = Date.now(); closeModal(); toast('تم إرسال رسالتك. شكراً لتواصلك معنا.');
+      } catch (x) { toast('تعذّر الإرسال. حاول لاحقاً.'); }
+    },
+    msgcfg: () => {
+      const gf = $('#gf').value.trim(), gc = $('#gc').value.trim();
+      if (gf) { const c = parseFormLink(gf); if (!c) return toast('الرابط غير صحيح. استخدم رابط «الحصول على رابط معبأ مسبقاً».'); D.contactForm = c; dirty = true; }
+      if (gc) { if (!/^https:\/\/docs\.google\.com\/spreadsheets\//.test(gc)) return toast('رابط الجدول غير صحيح.'); localStorage.gh_msgcsv = gc; }
+      render(1); toast('تم حفظ الإعداد. اضغط «حفظ ونشر» ليعمل النموذج للزوار.');
+    },
+    reloadmsgs: () => loadMessages(),
     delmember: () => { if (confirm('حذف هذا العضو؟')) ch(() => D.members.splice(n, 1))(); },
     addpick: () => modal(`<h2>ماذا تريد أن تضيف؟</h2><div class="pk">${KINDS.filter(([kk]) => kindOk(kk, pid)).map(([kk, l]) => `<button class="eb" data-a="add" data-k="${kk}" data-pid="${pid}" data-i="${n}">${l}</button>`).join('')}</div>`),
     add: () => { if (!kindOk(k, pid)) return toast('ليست لديك صلاحية لهذا النوع.'); closeModal(); dirty = true; const b = DEF[k](); bl().splice(n, 0, b); render(1); if (k === 'img') pickImage(path => { b.src = path; render(1); }); },
