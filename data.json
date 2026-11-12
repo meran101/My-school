@@ -119,7 +119,12 @@
       "image": ""
     }
   ],
-  "gallery": [],
+  "gallery": [
+    {
+      "src": "images/1794472284373.jpg",
+      "caption": "اعدادية بعشيقة للبنين"
+    }
+  ],
   "about": {
     "text": "اعدادية بعشيقة للبنين ",
     "image": "images/1794471190005.jpg"
