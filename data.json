@@ -413,5 +413,23 @@
       "text": "",
       "ts": "2026-11-12T15:16:57.389Z"
     }
-  ]
+  ],
+  "inbox": {
+    "project": "my-school-da433",
+    "key": "AIzaSyC3lcKqHCC77bHzvQ0FLS3YRsWlsFXoGaY",
+    "pub": {
+      "alg": "RSA-OAEP-256",
+      "e": "AQAB",
+      "ext": true,
+      "key_ops": [
+        "encrypt"
+      ],
+      "kty": "RSA",
+      "n": "3UNt-1IjFYUejifknsxvuIJGFW0apHz49nIxgWCrCJFb5OejyvxB5KvZj3BZJpvVQtj33hkhtcSjeACZGMJ52vPkIJOkgmVSKoDkcG-tGdgVbtGmZCcZdpcjg8UpqSpkFbyBn3ijgiHDf0HEKjIy1PKTpM8MDBeSDxZFCMVWRtWcjcRxTsdL2Bb3b0G-d8dpalFUJEXWKeSiDmoVWxjaAR2mfBYsCW617lmMjAlaIyRStD-dU2shSMmxnSAL3ZXWFNiA8Ah6dW_aW5aeFSNUMeEi4K6DMghfJ_594XXpJukLHvr9c0nzlrx-lTZskB5eb1MvoaXPT7TJXL0IESR2Fw"
+    }
+  },
+  "schoolImg": {
+    "src": "",
+    "pos": "center"
+  }
 }
