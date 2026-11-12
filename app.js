@@ -620,3 +620,21 @@ fetch('data.json?' + Date.now()).then(r => r.json()).then(d => {
   if (old && token) dirty = true; // البيانات القديمة حُوّلت: يلزم «حفظ ونشر» لتثبيتها
   render();
 }).catch(() => { $('#app').innerHTML = '<p class="wrap">تعذّر تحميل البيانات. افتح الموقع عبر GitHub Pages وليس كملف مباشر.</p>'; });
+
+
+/* ---------- الحركة: التقدم أثناء التمرير والظهور التدريجي ---------- */
+(() => {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const pg = document.createElement('div'); pg.id = 'prog'; pg.setAttribute('aria-hidden', 'true'); document.body.appendChild(pg);
+  let tick = false;
+  const upd = () => { const h = document.documentElement.scrollHeight - innerHeight; pg.style.transform = `scaleX(${h > 0 ? Math.min(1, scrollY / h) : 0})`; tick = false; };
+  addEventListener('scroll', () => { if (!tick) { tick = true; requestAnimationFrame(upd); } }, { passive: true });
+  if (!('IntersectionObserver' in window)) return;
+  document.documentElement.classList.add('rv-on');
+  const io = new IntersectionObserver(es => es.forEach(x => { if (x.isIntersecting) { x.target.classList.add('in'); io.unobserve(x.target); } }), { threshold: .08 });
+  const scan = () => {
+    if (ED()) { document.querySelectorAll('#app .rv:not(.in)').forEach(n => n.classList.add('in')); return; } // لا حركة أثناء التحرير
+    document.querySelectorAll('#app .blk:not(.t-hero):not(.ph), #app .msgrow, #app .mc2').forEach((n, i) => { if (!n.dataset.rv) { n.dataset.rv = 1; n.classList.add('rv'); n.style.transitionDelay = Math.min(i % 6, 5) * 50 + 'ms'; io.observe(n); } });
+  };
+  new MutationObserver(scan).observe($('#app'), { childList: true }); scan();
+})();
