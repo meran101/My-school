@@ -333,7 +333,43 @@
       "role": "admin"
     }
   ],
-  "codes": {},
+  "codes": {
+    "اللغة العربية": {
+      "salt": "l914aewaERBtoDGkEASLhQ==",
+      "iv": "5u6ckahHcmqH8TRe",
+      "ct": "mNhpwT14lwbBI+XcEzJhb1FQp2D5Lh4Pg2Y8pJloIXem7x64j1JIRRwIZDzCpYy0NtShuPxWsx9tCNbEsS1AwnvmhrxZXyMXYq5kZOvcB9SvKAGBsSVB7XztrKCb1vqtEiFm99NHvHc7hb+T5A=="
+    },
+    "اللغة الإنجليزية": {
+      "salt": "QTGcfxrbTDmQpiewN601KA==",
+      "iv": "y2yEMgHGRKckJJVv",
+      "ct": "f3zTTiMMiihJSUll8rojmdcfEhPIAmrWNZfybluwaNYzMqEEYU9b4nB3RgbMF9dikCviELba95R67XtUZohIl+QlICbxqbGmnUt7JJKF/Lkwel7is/IzcTrpLj4+B9UP4fgmXqfI0lLkOaofgg=="
+    },
+    "التربية الإسلامية": {
+      "salt": "kiOSF/SNfPSBn0LsQPZ7Lw==",
+      "iv": "X1o7xCgd6dNZtNj7",
+      "ct": "xiPU1WEEUwsC0aWlEQGnwQe7hq7TNro/XHd8JaFCr1P8Ollb7TjD33mN27+8RbmArQEYkTYh2o+awnn7+/QwtreoLFoHpKlzq5beFQTro2f3/Sl1F82TFeKnp2Ts+hhwMZW8L2lgbVwW31lOCg=="
+    },
+    "الرياضيات": {
+      "salt": "nrchX6M4OaapdFnHJLI+Jw==",
+      "iv": "M30oJP6STqQaBqWg",
+      "ct": "wicpb1WtTL8PnUBm9jS6x5x+ja/ovsHw3wbnlj1SoHIxaOaq7U104xaYHUxolY5/24KOI/ZEEe9Yq7pn7Yf+d4ZSSLECwvC2lZKA1ruC911W7e188PEWQAySYowGdyxpKKBFEEoW3mGapVdYVA=="
+    },
+    "الفيزياء": {
+      "salt": "6AK19psJmsFnQEoDsle7Qw==",
+      "iv": "ezRi1AWzWkHBGQlq",
+      "ct": "RL51IGAGOosgRbmvd/4PU6MBMls+nvRnt8zh5Cl0PmVd+joA3UfVsbFO3x/fMImuLWj77KTh9mluD0icAelCh7MQNfrJeiE/P7eHFctQtSiQegAbiQsj7F5rzSFiSzl2P34HBGtVOg/OORPW/g=="
+    },
+    "الكيمياء": {
+      "salt": "qbQYTdYIxGDfuYTSxVGXzQ==",
+      "iv": "F6/uGwcvoqGV4ohp",
+      "ct": "ynR7LedK45lMn/z66c3V0bqEj1dhqnhPf6e8GxR+O7Vj1vTYG9GZHY5xXQxkQ4Y9O8P4BAl4jnlk/KUoyU0Ct1Xe3XfHrpv2BzS5+vA/9+qEv/8InaeaUsDC8W3rvockcxNyvvdn695Ypx5rPQ=="
+    },
+    "الأحياء": {
+      "salt": "1W+Y5nozjXjzBoPZf++Ygw==",
+      "iv": "RnHTLC0b4APbWiIc",
+      "ct": "OYAvlHM0YM+R5q8TsWG6fBSrqWe5bDUcQmJTBlf7LvsaNGQmdSyYt/ryhzbnCsSMj5pODEmSynrYK9MX/aqbIBI3wA9geKu7eLRG0poo/HJV1784g1tk/8l3JahpRvxApFbJn+rt5AQ/F6NAWg=="
+    }
+  },
   "stageRoot": "imwdaz3lyo19",
   "newsPage": "imwdaz3lypzu"
 }
