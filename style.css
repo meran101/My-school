@@ -162,3 +162,22 @@ img.av{object-fit:cover;background:#dde3ea}
 .live .card{margin:0}
 .live .card img{height:auto;max-height:420px;cursor:zoom-in}
 @media(prefers-reduced-motion:reduce){.livedot{animation:none}}
+
+/* ---------- صورة المدرسة ---------- */
+.si{max-width:980px;margin:0 auto;padding:10px 16px}
+.si:empty{display:none}
+.si img{display:block;max-width:100%;max-height:260px;height:auto;border-radius:12px}
+.si-center img{margin:0 auto}
+.si-right img{margin:0 0 0 auto}
+.si-left img{margin:0 auto 0 0}
+.si .ec{justify-content:center;margin-top:6px}
+
+/* ---------- صندوق الرسائل ---------- */
+.msgs{display:grid;gap:10px}
+.msgrow{display:grid;grid-template-columns:1fr auto;gap:2px 12px;text-align:start;width:100%;font:inherit;background:#fff;border:0;border-inline-start:6px solid var(--teal);border-radius:12px;padding:12px 16px;cursor:pointer;box-shadow:0 2px 8px rgba(20,54,92,.08)}
+.msgrow:hover{box-shadow:0 6px 16px rgba(20,54,92,.15)}
+.msgrow b{color:var(--navy)}
+.msgrow time{color:#6b7786;font-size:.82rem}
+.msgrow span{grid-column:1/-1;color:#5b6877;font-size:.92rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.box time{display:block;margin-bottom:8px}
+pre.rules{direction:ltr;text-align:left;background:#eef2f6;padding:10px;border-radius:8px;overflow:auto;font-size:.78rem;white-space:pre}

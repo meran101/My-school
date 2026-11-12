@@ -8,7 +8,7 @@ const pv = {}; // معاينة الصور المرفوعة قبل أن يعيد 
 const SUBJECTS = ['اللغة العربية', 'اللغة الإنجليزية', 'التربية الإسلامية', 'الرياضيات', 'الفيزياء', 'الكيمياء', 'الأحياء'];
 const ACTS = [['text', 'تعديل النصوص'], ['img', 'إضافة صور'], ['file', 'رفع ملفات وروابط'], ['add', 'إضافة عناصر وصفحات'], ['del', 'حذف']];
 // الصلاحية المطلوبة لكل زر ('admin' = للمدير فقط)
-const ACT = { img: 'img', clr: 'img', upfile: 'file', add: 'add', addpick: 'add', up: 'add', down: 'add', delb: 'del', del: 'del', addmenu: 'admin', mup: 'admin', mdown: 'admin', mdel: 'admin', mkcode: 'admin', delmember: 'admin', msgcfg: 'admin', reloadmsgs: 'admin', liveadd: 'admin', livedel: 'admin' };
+const ACT = { img: 'img', clr: 'img', upfile: 'file', add: 'add', addpick: 'add', up: 'add', down: 'add', delb: 'del', del: 'del', addmenu: 'admin', mup: 'admin', mdown: 'admin', mdel: 'admin', mkcode: 'admin', delmember: 'admin', inboxcfg: 'admin', inboxbackup: 'admin', inboximport: 'admin', openmsg: 'admin', reloadmsgs: 'admin', schoolimg: 'admin', schoolclr: 'admin', schoolpos: 'admin', liveadd: 'admin', livedel: 'admin' };
 
 function guess() {
   const h = location.hostname, gh = h.endsWith('.github.io');
@@ -67,9 +67,9 @@ function migrate(o) {
   (o.pages || []).forEach(p => menu.push(mk(p.title, [{ t: 'p', text: p.text }, ...p.images.map(s => ({ t: 'img', src: s, text: '' }))])));
   return { school: o.school, urgent: o.urgent, menu, map };
 }
-const KEYS = ['school', 'urgent', 'menu', 'codes', 'stageRoot', 'newsPage', 'contactForm', 'ticketSeeded', 'live'];
+const KEYS = ['school', 'urgent', 'menu', 'codes', 'stageRoot', 'newsPage', 'contactForm', 'ticketSeeded', 'live', 'schoolImg', 'inbox'];
 function ensure(d) {
-  d.members = d.members || []; d.codes = d.codes || {}; d.live = d.live || [];
+  d.members = d.members || []; d.codes = d.codes || {}; d.live = d.live || []; d.schoolImg = d.schoolImg || { src: '', pos: 'center' };
   const mp = d.map;
   if (!d.stageRoot) d.stageRoot = d.menu.find(id => mp[id].title === 'المرحلة') || d.menu[0];
   if (!d.newsPage) d.newsPage = d.menu.find(id => mp[id].title === 'الأخبار') || '';
@@ -169,43 +169,61 @@ function pageView(pid) {
   return out.join('');
 }
 
-/* ---------- رسائل التواصل (عبر نموذج Google) ---------- */
-function parseFormLink(u) {
+/* ---------- رسائل التواصل: صندوق وارد داخل الموقع (مشفّر، يقرؤه المدير فقط) ---------- */
+const RULES = `rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /inbox/{id} {
+      allow create: if request.resource.data.keys().hasOnly(['ek','iv','ct','ts'])
+                    && request.resource.data.ct.size() < 12000;
+      allow read: if true;
+    }
+  }
+}`;
+const fsUrl = () => `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(D.inbox.project)}/databases/(default)/documents/inbox`;
+const RSA = { name: 'RSA-OAEP', hash: 'SHA-256' };
+async function sealMsg(pubJwk, obj) { // تشفير مختلط: AES للرسالة وRSA للمفتاح
+  const pub = await crypto.subtle.importKey('jwk', pubJwk, RSA, false, ['encrypt']);
+  const ak = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt']);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, ak, enc.encode(JSON.stringify(obj)));
+  const ek = await crypto.subtle.encrypt({ name: 'RSA-OAEP' }, pub, await crypto.subtle.exportKey('raw', ak));
+  return { ek: toB(ek), iv: toB(iv), ct: toB(ct) };
+}
+async function openMsg(priv, v) {
   try {
-    const id = (u.match(/\/forms\/d\/e\/([\w-]+)/) || [])[1];
-    const ents = [...u.matchAll(/entry\.(\d+)=([^&]*)/g)].map(m => ({ k: 'entry.' + m[1], v: decodeURIComponent(m[2].replace(/\+/g, ' ')) }));
-    if (!id || ents.length < 2) return null;
-    const nm = ents.find(x => /اسم|name/i.test(x.v)) || ents[0];
-    const ms = ents.find(x => x !== nm && /رسال|msg|message/i.test(x.v)) || ents.find(x => x !== nm);
-    return { id, name: nm.k, msg: ms.k };
+    const raw = await crypto.subtle.decrypt({ name: 'RSA-OAEP' }, priv, fromB(v.ek));
+    const ak = await crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['decrypt']);
+    return JSON.parse(dec.decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromB(v.iv) }, ak, fromB(v.ct))));
   } catch (x) { return null; }
 }
-function parseCSV(t) {
-  const rows = []; let r = [], f = '', q = false;
-  for (let i = 0; i < t.length; i++) {
-    const c = t[i];
-    if (q) { if (c === '"') { if (t[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += c; }
-    else if (c === '"') q = true;
-    else if (c === ',') { r.push(f); f = ''; }
-    else if (c === '\n' || c === '\r') { if (c === '\r' && t[i + 1] === '\n') i++; r.push(f); f = ''; rows.push(r); r = []; }
-    else f += c;
-  }
-  if (f || r.length) { r.push(f); rows.push(r); }
-  return rows;
-}
+let MSGS = [];
 function messagesView() {
   if (!isAdmin()) return '<section class="wrap"><h1>هذه الصفحة للمدير فقط</h1></section>';
-  if (!localStorage.gh_msgcsv) return '<section class="wrap"><h1>رسائل التواصل</h1><p class="empty">لم تُضبط الرسائل بعد. افتح «حساب المدير» وأدخل رابط جدول الإجابات.</p><a class="btn" href="#admin">حساب المدير</a></section>';
+  if (!D.inbox || !D.inbox.pub) return '<section class="wrap"><h1>رسائل التواصل</h1><p class="empty">لم يُفعَّل صندوق الرسائل بعد. افتح «حساب المدير» واتبع خطوات «صندوق رسائل التواصل».</p><a class="btn" href="#admin">حساب المدير</a></section>';
+  if (!localStorage.gh_inboxkey) return '<section class="wrap"><h1>رسائل التواصل</h1><p class="empty">مفتاح قراءة الرسائل غير موجود على هذا الجهاز. افتح «حساب المدير» واستورد المفتاح من النسخة الاحتياطية.</p><a class="btn" href="#admin">حساب المدير</a></section>';
   return '<section class="wrap"><h1>رسائل التواصل</h1><p><button class="eb" data-a="reloadmsgs">تحديث</button></p><div id="msgs"><p class="empty">جارٍ تحميل الرسائل...</p></div></section>';
 }
 async function loadMessages() {
   const box = $('#msgs'); if (!box) return;
   try {
-    const u = localStorage.gh_msgcsv, r = await fetch(u + (u.includes('?') ? '&' : '?') + 't=' + Date.now());
-    if (!r.ok) throw 0;
-    const rows = parseCSV(await r.text()).slice(1).filter(x => x[1] || x[2]).reverse();
-    box.innerHTML = rows.length ? `<p class="hint">${rows.length} رسالة، الأحدث أولاً.</p>` + rows.map(x => `<article class="card msg"><div class="cb"><time>${e(x[0])}</time><h3>${e(x[1])}</h3><p>${nl(x[2])}</p></div></article>`).join('') : '<p class="empty">لا توجد رسائل بعد.</p>';
-  } catch (x) { box.innerHTML = '<p class="empty">تعذّر تحميل الرسائل. تأكد أن الجدول منشور على الويب بصيغة CSV.</p>'; }
+    const priv = await crypto.subtle.importKey('jwk', JSON.parse(localStorage.gh_inboxkey), RSA, false, ['decrypt']);
+    const docs = []; let tok = '';
+    do {
+      const r = await fetch(`${fsUrl()}?pageSize=300&key=${encodeURIComponent(D.inbox.key)}` + (tok ? `&pageToken=${encodeURIComponent(tok)}` : ''));
+      if (!r.ok) throw 0;
+      const j = await r.json(); docs.push(...(j.documents || [])); tok = j.nextPageToken || '';
+    } while (tok && docs.length < 2000);
+    const out = [];
+    for (const d of docs) {
+      const f = d.fields || {}, sv = k => f[k] && f[k].stringValue;
+      if (!sv('ek') || !sv('iv') || !sv('ct')) continue;
+      const m = await openMsg(priv, { ek: sv('ek'), iv: sv('iv'), ct: sv('ct') });
+      if (m && typeof m.msg === 'string') out.push({ name: String(m.name || ''), msg: m.msg, ts: sv('ts') || d.createTime || '' });
+    }
+    out.sort((a, b) => b.ts.localeCompare(a.ts)); MSGS = out;
+    box.innerHTML = out.length ? `<p class="hint">${out.length} رسالة، الأحدث أولاً. اضغط على الرسالة لقراءتها.</p><div class="msgs">${out.map((m, i) => `<button class="msgrow" data-a="openmsg" data-i="${i}"><b>${e(m.name)}</b><time>${e(fmtT(m.ts))}</time><span>${e(m.msg.slice(0, 70))}${m.msg.length > 70 ? '…' : ''}</span></button>`).join('')}</div>` : '<p class="empty">لا توجد رسائل بعد.</p>';
+  } catch (x) { box.innerHTML = '<p class="empty">تعذّر تحميل الرسائل. تأكد من إعداد الصندوق في «حساب المدير» ومن صحة مفتاح القراءة.</p>'; }
 }
 
 /* ---------- صفحة live: صور حية ينشرها المدير ---------- */
@@ -231,16 +249,20 @@ function adminView() {
     return `<section class="wrap adm">${profile()}
     <h2>رموز المدرسين</h2><p class="hint">أعطِ كل مدرس رمز مادته. عند إنشاء رمز جديد يبطل الرمز القديم لمن يسجّل الدخول بعده.</p>
     ${SUBJECTS.map(s => `<div class="row"><b class="grow">${e(s)}</b>${codes[s] ? `<code class="code">${e(codes[s])}</code><button class="eb" data-a="copycode" data-s="${e(s)}">نسخ</button>` : `<span class="empty">${D.codes[s] ? 'يوجد رمز (غير ظاهر على هذا الجهاز)' : 'لا يوجد رمز'}</span>`}<button class="eb" data-a="mkcode" data-s="${e(s)}">${D.codes[s] ? 'تجديد الرمز' : 'إنشاء رمز'}</button></div>`).join('')}
-    <h2>إعداد رسائل التواصل</h2>
-    <details><summary>طريقة الإعداد (مرة واحدة)</summary><ol class="hint">
-      <li>افتح forms.google.com وأنشئ نموذجاً بسؤالين بهذا الترتيب: «الاسم» (إجابة قصيرة) ثم «الرسالة» (فقرة).</li>
-      <li>من تبويب «الردود» اربط النموذج بجدول Google Sheets.</li>
-      <li>في النموذج: القائمة ⋮ ثم «الحصول على رابط معبأ مسبقاً»، واكتب كلمة «اسم» في السؤال الأول وكلمة «رسالة» في الثاني، ثم انسخ الرابط والصقه أدناه.</li>
-      <li>في الجدول: ملف ثم مشاركة ثم «النشر على الويب»، اختر ورقة الردود وصيغة CSV، ثم انسخ الرابط والصقه أدناه.</li></ol></details>
-    <label>رابط النموذج المعبأ مسبقاً<input id="gf" dir="ltr" placeholder="https://docs.google.com/forms/d/e/..."></label>
-    <label>رابط جدول الإجابات (CSV)<input id="gc" dir="ltr" value="${e(localStorage.gh_msgcsv || '')}"></label>
-    <p class="hint">الحالة: ${D.contactForm ? 'النموذج مفعّل' : 'النموذج غير مفعّل'}، ${localStorage.gh_msgcsv ? 'رابط الرسائل محفوظ على هذا الجهاز' : 'رابط الرسائل غير محفوظ'}.</p>
-    <button class="eb" data-a="msgcfg">حفظ الإعداد</button>
+    <h2>صندوق رسائل التواصل</h2>
+    <details><summary>طريقة الإعداد (مرة واحدة، مجاناً)</summary><ol class="hint">
+      <li>افتح console.firebase.google.com وأنشئ مشروعاً جديداً (يمكنك إيقاف Analytics).</li>
+      <li>من القائمة: Build ثم Firestore Database ثم Create database (اختر أي موقع، ووضع Production).</li>
+      <li>افتح تبويب Rules والصق القواعد التالية مكان القديمة ثم Publish:<pre class="rules">${e(RULES)}</pre></li>
+      <li>من إعدادات المشروع (⚙️) ثم General ثم «Your apps» أضف تطبيق ويب (&lt;/&gt;) وانسخ قيمتي projectId وapiKey.</li>
+      <li>الصقهما أدناه، اضغط «حفظ إعداد الصندوق» ثم «حفظ ونشر».</li></ol></details>
+    <label>Project ID<input id="fp" dir="ltr" value="${e((D.inbox || {}).project || '')}"></label>
+    <label>API Key<input id="fk" dir="ltr" value="${e((D.inbox || {}).key || '')}"></label>
+    <p class="hint">الحالة: ${D.inbox && D.inbox.pub ? 'الصندوق مُعدّ' : 'الصندوق غير مُعدّ'}، ${localStorage.gh_inboxkey ? 'مفتاح القراءة موجود على هذا الجهاز' : 'مفتاح القراءة غير موجود على هذا الجهاز'}.</p>
+    <button class="eb" data-a="inboxcfg">حفظ إعداد الصندوق</button>
+    ${localStorage.gh_inboxkey ? '<button class="eb" data-a="inboxbackup">نسخ نسخة احتياطية من مفتاح القراءة</button>' : ''}
+    <details><summary>استيراد مفتاح القراءة (للدخول من جهاز آخر)</summary>
+      <label>الصق المفتاح المنسوخ<textarea id="ik" dir="ltr" rows="3"></textarea></label><button class="eb" data-a="inboximport">استيراد</button></details>
     <h2>المدرسون والصلاحيات</h2>${membersAdmin()}
     <p><button class="btn" data-a="save">حفظ ونشر</button> <button class="btn ghost" data-a="logout">تسجيل الخروج</button></p></section>`;
   }
@@ -351,6 +373,15 @@ function pickFile(cb) {
 }
 const persist = () => { localStorage.gh_token = token; localStorage.gh_cfg = JSON.stringify(cfg); localStorage.gh_me = JSON.stringify(me); };
 
+/* ---------- صورة المدرسة في أعلى الموقع ---------- */
+function schoolImgHtml() {
+  const si = D.schoolImg, adm = ED() && isAdmin();
+  if (!si.src && !adm) return '';
+  const pos = ['right', 'center', 'left'].includes(si.pos) ? si.pos : 'center';
+  const ctl = adm ? `<div class="ec">${eb('schoolimg', '', si.src ? 'تغيير صورة المدرسة' : 'إضافة صورة المدرسة')}${si.src ? eb('schoolclr', '', 'إزالة', 'dn') : ''}${si.src ? [['right', 'يمين'], ['center', 'وسط'], ['left', 'يسار']].map(([kk, l]) => eb('schoolpos', `data-k="${kk}"`, l, pos === kk ? 'add' : '')).join('') : ''}</div>` : '';
+  return `<div class="si si-${pos}">${si.src ? `<img src="${im(si.src)}" alt="${e(D.school.name)}">` : ''}${ctl}</div>`;
+}
+
 /* ---------- العرض ---------- */
 function render(keep) {
   const y = scrollY, h = (location.hash || '').slice(1), special = h === 'admin' || h === 'teachers' || h === 'messages' || h === 'live';
@@ -366,6 +397,8 @@ function render(keep) {
     + `<a href="#live" class="${h === 'live' ? 'on' : ''}"><span class="livedot"></span>live</a>`
     + (adm ? `<a href="#" data-a="addmenu">+ إضافة صفحة جديدة</a>` : '')
     + `<hr><a href="#admin" class="${h === 'admin' ? 'on' : ''}">حساب المدير</a><a href="#teachers" class="sublink ${h === 'teachers' ? 'on' : ''}">حساب المدرسين</a>${isAdmin() ? `<a href="#messages" class="sublink sub2 ${h === 'messages' ? 'on' : ''}">رسائل التواصل</a>` : ''}`;
+  let si = $('#schoolimg'); if (!si) { si = document.createElement('div'); si.id = 'schoolimg'; $('#ticker').after(si); }
+  si.innerHTML = schoolImgHtml();
   $('#foot').innerHTML = e(D.school.name);
   let m = $('#me'); if (!m) { m = document.createElement('a'); m.id = 'me'; $('header').append(m); }
   m.href = me && me.role === 'admin' ? '#admin' : '#teachers';
@@ -447,19 +480,40 @@ document.addEventListener('click', async ev => {
       const nm = $('#tname').value.trim(), msg = $('#tmsg').value.trim();
       if (!nm || !msg) return toast('اكتب الاسم والرسالة.');
       if ($('#thp').value) return closeModal(); // فخ للروبوتات
-      const f = D.contactForm; if (!f) return toast('خدمة الرسائل غير مفعّلة بعد.');
+      if (!D.inbox || !D.inbox.pub || !D.inbox.project) return toast('خدمة الرسائل غير مفعّلة بعد.');
       if (Date.now() - (+localStorage.gh_last || 0) < 60000) return toast('انتظر دقيقة قبل إرسال رسالة أخرى.');
       try {
-        await fetch(`https://docs.google.com/forms/d/e/${f.id}/formResponse`, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ [f.name]: nm, [f.msg]: msg }) });
+        const sl = await sealMsg(D.inbox.pub, { name: nm, msg }), sv = stringValue => ({ stringValue });
+        const r = await fetch(`${fsUrl()}?key=${encodeURIComponent(D.inbox.key)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: { ek: sv(sl.ek), iv: sv(sl.iv), ct: sv(sl.ct), ts: sv(new Date().toISOString()) } }) });
+        if (!r.ok) throw 0;
         localStorage.gh_last = Date.now(); closeModal(); toast('تم إرسال رسالتك. شكراً لتواصلك معنا.');
       } catch (x) { toast('تعذّر الإرسال. حاول لاحقاً.'); }
     },
-    msgcfg: () => {
-      const gf = $('#gf').value.trim(), gc = $('#gc').value.trim();
-      if (gf) { const c = parseFormLink(gf); if (!c) return toast('الرابط غير صحيح. استخدم رابط «الحصول على رابط معبأ مسبقاً».'); D.contactForm = c; dirty = true; }
-      if (gc) { if (!/^https:\/\/docs\.google\.com\/spreadsheets\//.test(gc)) return toast('رابط الجدول غير صحيح.'); localStorage.gh_msgcsv = gc; }
-      render(1); toast('تم حفظ الإعداد. اضغط «حفظ ونشر» ليعمل النموذج للزوار.');
+    inboxcfg: async () => {
+      const project = $('#fp').value.trim(), key = $('#fk').value.trim();
+      if (!/^[a-z0-9-]{4,}$/i.test(project) || key.length < 20) return toast('تحقق من Project ID وAPI Key.');
+      const old = D.inbox || {};
+      let pub = old.pub;
+      if (!pub) {
+        const kp = await crypto.subtle.generateKey({ name: 'RSA-OAEP', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' }, true, ['encrypt', 'decrypt']);
+        pub = await crypto.subtle.exportKey('jwk', kp.publicKey);
+        localStorage.gh_inboxkey = JSON.stringify(await crypto.subtle.exportKey('jwk', kp.privateKey));
+      }
+      D.inbox = { project, key, pub }; dirty = true; render(1);
+      toast('تم حفظ الإعداد. اضغط «حفظ ونشر» ثم انسخ نسخة احتياطية من مفتاح القراءة.');
     },
+    inboxbackup: () => { navigator.clipboard && navigator.clipboard.writeText(localStorage.gh_inboxkey || ''); toast('تم نسخ المفتاح. احفظه في مكان آمن ولا تشاركه مع أحد.'); },
+    inboximport: async () => {
+      try {
+        const j = JSON.parse($('#ik').value.trim());
+        await crypto.subtle.importKey('jwk', j, RSA, false, ['decrypt']);
+        localStorage.gh_inboxkey = JSON.stringify(j); render(1); toast('تم استيراد مفتاح القراءة.');
+      } catch (x) { toast('المفتاح غير صالح.'); }
+    },
+    openmsg: () => { const m = MSGS[n]; if (m) modal(`<h2>${e(m.name)}</h2><time class="hint">${e(fmtT(m.ts))}</time><p>${nl(m.msg)}</p>`); },
+    schoolimg: () => pickImage(path => { D.schoolImg.src = path; render(1); }),
+    schoolclr: ch(() => { D.schoolImg.src = ''; }),
+    schoolpos: ch(() => { D.schoolImg.pos = k; }),
     reloadmsgs: () => loadMessages(),
     liveadd: () => pickImage(async path => {
       D.live.push({ id: uid(), src: path, text: '', ts: new Date().toISOString() }); dirty = true; render(1);
