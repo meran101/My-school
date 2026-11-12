@@ -132,6 +132,67 @@ const eb = (a, attrs, label, cls = '') => {
 };
 const imgCtl = p => { const c = eb('img', `data-p="${p}"`, get(p) ? 'تغيير الصورة' : 'إضافة صورة') + (get(p) ? eb('clr', `data-p="${p}"`, 'إزالة الصورة', 'dn') : ''); return c ? `<span class="ec">${c}</span>` : ''; };
 
+/* ---------- الخلفيات المتحركة: لون وحركة خاصان بكل صفحة ---------- */
+const THEMES = [
+  { bg: '#030620', a: '#19d3ff', b: '#3b6bff', m: 'net' },   // أزرق: الصفحة الأولى
+  { bg: '#03130e', a: '#2ee6a6', b: '#19b3d6', m: 'rise' },  // أخضر
+  { bg: '#0b0620', a: '#b48cff', b: '#ff6bd6', m: 'net' },   // بنفسجي
+  { bg: '#190512', a: '#ff6b9a', b: '#ffb347', m: 'rise' },  // وردي
+  { bg: '#150e03', a: '#ffc247', b: '#ff7a3d', m: 'net' },   // ذهبي
+  { bg: '#021a1c', a: '#3ee6e0', b: '#4d8dff', m: 'rise' }   // فيروزي
+];
+function themeFor(h, cur) {
+  const sp = { admin: 2, teachers: 1, messages: 4, live: 3 }; if (sp[h] !== undefined) return sp[h];
+  let x = cur; for (let n = 0; x && n < 12; n++) { const par = parentOf(x); if (!par) break; x = par.id; } // الصفحات الداخلية ترث لون صفحتها الرئيسية
+  const k = D.menu.indexOf(x); return k < 0 ? 0 : k % THEMES.length;
+}
+const BG = (() => {
+  const cv = document.createElement('canvas'); cv.id = 'bgfx'; cv.setAttribute('aria-hidden', 'true'); document.body.prepend(cv);
+  const cx = cv.getContext('2d'), reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let W = 0, H = 0, P = [], th = THEMES[0], raf = 0;
+  const rgba = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${n >> 8 & 255},${n & 255},${a})`; };
+  const vel = p => { if (th.m === 'rise') { p.vx = (Math.random() - .5) * .25; p.vy = -(.15 + Math.random() * .5); } else { p.vx = (Math.random() - .5) * .4; p.vy = (Math.random() - .5) * .4; } };
+  const mk = () => { const p = { x: Math.random() * W, y: Math.random() * H, r: Math.random() * 1.8 + .6, s: Math.random() * 6.28 }; vel(p); return p; };
+  function size() {
+    const d = Math.min(devicePixelRatio || 1, 2); W = innerWidth; H = innerHeight; cv.width = W * d; cv.height = H * d; cx.setTransform(d, 0, 0, d, 0, 0);
+    P = Array.from({ length: Math.min(110, Math.round(W * H / 15000)) }, mk); if (reduce) draw(0);
+  }
+  function draw(t) {
+    cx.clearRect(0, 0, W, H);
+    [[th.a, .5 + .25 * Math.sin(t / 5000), .25], [th.b, .5 + .25 * Math.cos(t / 6500), .8]].forEach(([c, fx, fy], i) => {
+      const x = W * fx, y = H * (fy + .08 * Math.sin(t / 4000 + i)), g = cx.createRadialGradient(x, y, 0, x, y, Math.max(W, H) * .55);
+      g.addColorStop(0, rgba(c, .16)); g.addColorStop(1, rgba(c, 0)); cx.fillStyle = g; cx.fillRect(0, 0, W, H);
+    });
+    if (th.m === 'net') {
+      cx.lineWidth = 1;
+      for (let i = 0; i < P.length; i++) for (let j = i + 1; j < P.length; j++) {
+        const dx = P[i].x - P[j].x, dy = P[i].y - P[j].y, d = dx * dx + dy * dy;
+        if (d < 16900) { cx.strokeStyle = rgba(th.a, .28 * (1 - d / 16900)); cx.beginPath(); cx.moveTo(P[i].x, P[i].y); cx.lineTo(P[j].x, P[j].y); cx.stroke(); }
+      }
+    }
+    P.forEach(p => {
+      if (th.m === 'rise') { cx.fillStyle = rgba(th.b, .12); cx.beginPath(); cx.arc(p.x, p.y, p.r * 4, 0, 6.283); cx.fill(); }
+      cx.fillStyle = rgba(th.a, th.m === 'rise' ? .75 : .9); cx.beginPath(); cx.arc(p.x, p.y, p.r, 0, 6.283); cx.fill();
+    });
+  }
+  function loop(t) {
+    P.forEach(p => {
+      p.x += p.vx + (th.m === 'rise' ? Math.sin(t / 1200 + p.s) * .25 : 0); p.y += p.vy;
+      if (p.x < -10) p.x = W + 10; else if (p.x > W + 10) p.x = -10;
+      if (p.y < -10) p.y = H + 10; else if (p.y > H + 10) p.y = -10;
+    });
+    draw(t); raf = requestAnimationFrame(loop);
+  }
+  const start = () => { cancelAnimationFrame(raf); if (!reduce && !document.hidden) raf = requestAnimationFrame(loop); };
+  let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(size, 200); });
+  document.addEventListener('visibilitychange', start);
+  size(); start();
+  return { set(i) {
+    th = THEMES[i] || THEMES[0]; const st = document.body.style; st.setProperty('--pbg', th.bg); st.setProperty('--pa', th.a); st.setProperty('--pb', th.b);
+    P.forEach(vel); if (reduce) draw(0);
+  } };
+})();
+
 /* ---------- المساعد: «اعرف عنا» ---------- */
 const CHAT = []; let chatBusy = false;
 const nz = x => String(x || '').replace(/[\u064B-\u0652\u0640]/g, '').replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').toLowerCase();
@@ -464,6 +525,7 @@ function render(keep) {
   const y = scrollY, h = (location.hash || '').slice(1), special = h === 'admin' || h === 'teachers' || h === 'messages' || h === 'live';
   const cur = h.startsWith('p-') && D.map[h.slice(2)] ? h.slice(2) : D.menu[0];
   $('#app').innerHTML = h === 'admin' ? adminView() : h === 'teachers' ? teachersView() : h === 'messages' ? messagesView() : h === 'live' ? liveView() : cur ? pageView(cur) : `<section class="wrap"><p class="empty">لا توجد صفحات بعد.</p>${eb('addmenu', '', '+ إضافة صفحة', 'add')}</section>`;
+  BG.set(themeFor(h, cur));
   if (h === 'live') liveStart();
   if (h === 'messages' && isAdmin()) loadMessages();
   const br = $('#brand'), adm = ED() && isAdmin();
