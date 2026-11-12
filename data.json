@@ -399,5 +399,13 @@
   },
   "stageRoot": "imwdaz3lyo19",
   "newsPage": "imwdaz3lypzu",
-  "ticketSeeded": true
+  "ticketSeeded": true,
+  "live": [
+    {
+      "id": "imwdoxmuk058",
+      "src": "images/1794496582826.jpg",
+      "text": "",
+      "ts": "2026-11-12T15:16:25.196Z"
+    }
+  ]
 }
