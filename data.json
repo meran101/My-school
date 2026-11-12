@@ -4,135 +4,303 @@
     "subtitle": "الموقع الرسمي"
   },
   "urgent": "",
-  "home": {
-    "title": "مرحباً بكم في مدرستنا",
-    "intro": "اختر مرحلتك الدراسية للاطلاع على موادها.",
-    "hero": ""
-  },
-  "stages": [
-    {
-      "name": "الرابع العلمي",
-      "subjects": [
+  "menu": [
+    "imwdaz3lyo19",
+    "imwdaz3lypzu",
+    "imwdaz3lyq5b",
+    "imwdaz3lyr34",
+    "imwdaz3lysmg"
+  ],
+  "map": {
+    "imwdaz3ly0e3": {
+      "id": "imwdaz3ly0e3",
+      "title": "اللغة العربية",
+      "blocks": [
         {
-          "name": "اللغة العربية",
-          "link": ""
-        },
-        {
-          "name": "اللغة الإنجليزية",
-          "link": ""
-        },
-        {
-          "name": "التربية الإسلامية",
-          "link": ""
-        },
-        {
-          "name": "الرياضيات",
-          "link": ""
-        },
-        {
-          "name": "الفيزياء",
-          "link": ""
-        },
-        {
-          "name": "الكيمياء",
-          "link": ""
-        },
-        {
-          "name": "الأحياء",
-          "link": ""
+          "t": "page",
+          "ref": "imwdazkcctlk"
         }
       ]
     },
-    {
-      "name": "الخامس العلمي",
-      "subjects": [
+    "imwdaz3ly16c": {
+      "id": "imwdaz3ly16c",
+      "title": "اللغة الإنجليزية",
+      "blocks": []
+    },
+    "imwdaz3ly2ps": {
+      "id": "imwdaz3ly2ps",
+      "title": "التربية الإسلامية",
+      "blocks": []
+    },
+    "imwdaz3ly35b": {
+      "id": "imwdaz3ly35b",
+      "title": "الرياضيات",
+      "blocks": []
+    },
+    "imwdaz3ly4aa": {
+      "id": "imwdaz3ly4aa",
+      "title": "الفيزياء",
+      "blocks": []
+    },
+    "imwdaz3ly5nt": {
+      "id": "imwdaz3ly5nt",
+      "title": "الكيمياء",
+      "blocks": []
+    },
+    "imwdaz3ly6an": {
+      "id": "imwdaz3ly6an",
+      "title": "الأحياء",
+      "blocks": []
+    },
+    "imwdaz3ly7zk": {
+      "id": "imwdaz3ly7zk",
+      "title": "الرابع العلمي",
+      "blocks": [
         {
-          "name": "اللغة العربية",
-          "link": ""
+          "t": "page",
+          "ref": "imwdaz3ly0e3"
         },
         {
-          "name": "اللغة الإنجليزية",
-          "link": ""
+          "t": "page",
+          "ref": "imwdaz3ly16c"
         },
         {
-          "name": "التربية الإسلامية",
-          "link": ""
+          "t": "page",
+          "ref": "imwdaz3ly2ps"
         },
         {
-          "name": "الرياضيات",
-          "link": ""
+          "t": "page",
+          "ref": "imwdaz3ly35b"
         },
         {
-          "name": "الفيزياء",
-          "link": ""
+          "t": "page",
+          "ref": "imwdaz3ly4aa"
         },
         {
-          "name": "الكيمياء",
-          "link": ""
+          "t": "page",
+          "ref": "imwdaz3ly5nt"
         },
         {
-          "name": "الأحياء",
-          "link": ""
+          "t": "page",
+          "ref": "imwdaz3ly6an"
         }
       ]
     },
-    {
-      "name": "السادس العلمي",
-      "subjects": [
+    "imwdaz3ly8xb": {
+      "id": "imwdaz3ly8xb",
+      "title": "اللغة العربية",
+      "blocks": []
+    },
+    "imwdaz3ly98b": {
+      "id": "imwdaz3ly98b",
+      "title": "اللغة الإنجليزية",
+      "blocks": []
+    },
+    "imwdaz3lyand": {
+      "id": "imwdaz3lyand",
+      "title": "التربية الإسلامية",
+      "blocks": []
+    },
+    "imwdaz3lyb2i": {
+      "id": "imwdaz3lyb2i",
+      "title": "الرياضيات",
+      "blocks": []
+    },
+    "imwdaz3lycfh": {
+      "id": "imwdaz3lycfh",
+      "title": "الفيزياء",
+      "blocks": []
+    },
+    "imwdaz3lydy9": {
+      "id": "imwdaz3lydy9",
+      "title": "الكيمياء",
+      "blocks": []
+    },
+    "imwdaz3lye0s": {
+      "id": "imwdaz3lye0s",
+      "title": "الأحياء",
+      "blocks": []
+    },
+    "imwdaz3lyf6v": {
+      "id": "imwdaz3lyf6v",
+      "title": "الخامس العلمي",
+      "blocks": [
         {
-          "name": "اللغة العربية",
-          "link": ""
+          "t": "page",
+          "ref": "imwdaz3ly8xb"
         },
         {
-          "name": "اللغة الإنجليزية",
-          "link": ""
+          "t": "page",
+          "ref": "imwdaz3ly98b"
         },
         {
-          "name": "التربية الإسلامية",
-          "link": ""
+          "t": "page",
+          "ref": "imwdaz3lyand"
         },
         {
-          "name": "الرياضيات",
-          "link": ""
+          "t": "page",
+          "ref": "imwdaz3lyb2i"
         },
         {
-          "name": "الفيزياء",
-          "link": ""
+          "t": "page",
+          "ref": "imwdaz3lycfh"
         },
         {
-          "name": "الكيمياء",
-          "link": ""
+          "t": "page",
+          "ref": "imwdaz3lydy9"
         },
         {
-          "name": "الأحياء",
-          "link": ""
+          "t": "page",
+          "ref": "imwdaz3lye0s"
         }
       ]
+    },
+    "imwdaz3lygpm": {
+      "id": "imwdaz3lygpm",
+      "title": "اللغة العربية",
+      "blocks": []
+    },
+    "imwdaz3lyham": {
+      "id": "imwdaz3lyham",
+      "title": "اللغة الإنجليزية",
+      "blocks": []
+    },
+    "imwdaz3lyiog": {
+      "id": "imwdaz3lyiog",
+      "title": "التربية الإسلامية",
+      "blocks": []
+    },
+    "imwdaz3lyjwq": {
+      "id": "imwdaz3lyjwq",
+      "title": "الرياضيات",
+      "blocks": []
+    },
+    "imwdaz3lyk6h": {
+      "id": "imwdaz3lyk6h",
+      "title": "الفيزياء",
+      "blocks": []
+    },
+    "imwdaz3lylvg": {
+      "id": "imwdaz3lylvg",
+      "title": "الكيمياء",
+      "blocks": []
+    },
+    "imwdaz3lymmz": {
+      "id": "imwdaz3lymmz",
+      "title": "الأحياء",
+      "blocks": []
+    },
+    "imwdaz3lynlh": {
+      "id": "imwdaz3lynlh",
+      "title": "السادس العلمي",
+      "blocks": [
+        {
+          "t": "page",
+          "ref": "imwdaz3lygpm"
+        },
+        {
+          "t": "page",
+          "ref": "imwdaz3lyham"
+        },
+        {
+          "t": "page",
+          "ref": "imwdaz3lyiog"
+        },
+        {
+          "t": "page",
+          "ref": "imwdaz3lyjwq"
+        },
+        {
+          "t": "page",
+          "ref": "imwdaz3lyk6h"
+        },
+        {
+          "t": "page",
+          "ref": "imwdaz3lylvg"
+        },
+        {
+          "t": "page",
+          "ref": "imwdaz3lymmz"
+        }
+      ]
+    },
+    "imwdaz3lyo19": {
+      "id": "imwdaz3lyo19",
+      "title": "المرحلة",
+      "blocks": [
+        {
+          "t": "hero",
+          "title": "مرحباً بكم في مدرستنا",
+          "text": "اختر مرحلتك الدراسية للاطلاع على موادها.",
+          "src": ""
+        },
+        {
+          "t": "page",
+          "ref": "imwdaz3ly7zk"
+        },
+        {
+          "t": "page",
+          "ref": "imwdaz3lyf6v"
+        },
+        {
+          "t": "page",
+          "ref": "imwdaz3lynlh"
+        }
+      ]
+    },
+    "imwdaz3lypzu": {
+      "id": "imwdaz3lypzu",
+      "title": "الأخبار",
+      "blocks": [
+        {
+          "t": "card",
+          "title": "إطلاق الموقع الإلكتروني للمدرسة",
+          "text": "يسعدنا إطلاق موقع المدرسة. ستجدون هنا الأخبار والمواد الدراسية والصور.",
+          "date": "2026-11-12",
+          "src": ""
+        }
+      ]
+    },
+    "imwdaz3lyq5b": {
+      "id": "imwdaz3lyq5b",
+      "title": "معرض الصور",
+      "blocks": [
+        {
+          "t": "img",
+          "src": "images/1794472284373.jpg",
+          "text": "اعدادية بعشيقة للبنين"
+        }
+      ]
+    },
+    "imwdaz3lyr34": {
+      "id": "imwdaz3lyr34",
+      "title": "عن المدرسة",
+      "blocks": [
+        {
+          "t": "img",
+          "src": "images/1794471190005.jpg",
+          "text": ""
+        },
+        {
+          "t": "p",
+          "text": "اعدادية بعشيقة للبنين "
+        }
+      ]
+    },
+    "imwdaz3lysmg": {
+      "id": "imwdaz3lysmg",
+      "title": "تواصل معنا",
+      "blocks": [
+        {
+          "t": "p",
+          "text": "اكتب بيانات التواصل هنا"
+        }
+      ]
+    },
+    "imwdazkcctlk": {
+      "id": "imwdazkcctlk",
+      "title": "صفحة جديدة",
+      "blocks": []
     }
-  ],
-  "news": [
-    {
-      "id": "n1",
-      "title": "إطلاق الموقع الإلكتروني للمدرسة",
-      "text": "يسعدنا إطلاق موقع المدرسة. ستجدون هنا الأخبار والمواد الدراسية والصور.",
-      "date": "2026-11-12",
-      "image": ""
-    }
-  ],
-  "gallery": [
-    {
-      "src": "images/1794472284373.jpg",
-      "caption": "اعدادية بعشيقة للبنين"
-    }
-  ],
-  "about": {
-    "text": "اعدادية بعشيقة للبنين ",
-    "image": "images/1794471190005.jpg"
-  },
-  "contact": {
-    "phone": "",
-    "email": "",
-    "address": ""
-  },
-  "pages": []
+  }
 }
