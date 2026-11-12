@@ -146,51 +146,15 @@ function themeFor(h, cur) {
   let x = cur; for (let n = 0; x && n < 12; n++) { const par = parentOf(x); if (!par) break; x = par.id; } // الصفحات الداخلية ترث لون صفحتها الرئيسية
   const k = D.menu.indexOf(x); return k < 0 ? 0 : k % THEMES.length;
 }
-const BG = (() => {
-  const cv = document.createElement('canvas'); cv.id = 'bgfx'; cv.setAttribute('aria-hidden', 'true'); document.body.prepend(cv);
-  const cx = cv.getContext('2d'), reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let W = 0, H = 0, P = [], th = THEMES[0], raf = 0;
-  const rgba = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${n >> 8 & 255},${n & 255},${a})`; };
-  const vel = p => { if (th.m === 'rise') { p.vx = (Math.random() - .5) * .25; p.vy = -(.15 + Math.random() * .5); } else { p.vx = (Math.random() - .5) * .4; p.vy = (Math.random() - .5) * .4; } };
-  const mk = () => { const p = { x: Math.random() * W, y: Math.random() * H, r: Math.random() * 1.8 + .6, s: Math.random() * 6.28 }; vel(p); return p; };
-  function size() {
-    const d = Math.min(devicePixelRatio || 1, 2); W = innerWidth; H = innerHeight; cv.width = W * d; cv.height = H * d; cx.setTransform(d, 0, 0, d, 0, 0);
-    P = Array.from({ length: Math.min(110, Math.round(W * H / 15000)) }, mk); if (reduce) draw(0);
-  }
-  function draw(t) {
-    cx.clearRect(0, 0, W, H);
-    [[th.a, .5 + .25 * Math.sin(t / 5000), .25], [th.b, .5 + .25 * Math.cos(t / 6500), .8]].forEach(([c, fx, fy], i) => {
-      const x = W * fx, y = H * (fy + .08 * Math.sin(t / 4000 + i)), g = cx.createRadialGradient(x, y, 0, x, y, Math.max(W, H) * .55);
-      g.addColorStop(0, rgba(c, .16)); g.addColorStop(1, rgba(c, 0)); cx.fillStyle = g; cx.fillRect(0, 0, W, H);
-    });
-    if (th.m === 'net') {
-      cx.lineWidth = 1;
-      for (let i = 0; i < P.length; i++) for (let j = i + 1; j < P.length; j++) {
-        const dx = P[i].x - P[j].x, dy = P[i].y - P[j].y, d = dx * dx + dy * dy;
-        if (d < 16900) { cx.strokeStyle = rgba(th.a, .28 * (1 - d / 16900)); cx.beginPath(); cx.moveTo(P[i].x, P[i].y); cx.lineTo(P[j].x, P[j].y); cx.stroke(); }
-      }
-    }
-    P.forEach(p => {
-      if (th.m === 'rise') { cx.fillStyle = rgba(th.b, .12); cx.beginPath(); cx.arc(p.x, p.y, p.r * 4, 0, 6.283); cx.fill(); }
-      cx.fillStyle = rgba(th.a, th.m === 'rise' ? .75 : .9); cx.beginPath(); cx.arc(p.x, p.y, p.r, 0, 6.283); cx.fill();
-    });
-  }
-  function loop(t) {
-    P.forEach(p => {
-      p.x += p.vx + (th.m === 'rise' ? Math.sin(t / 1200 + p.s) * .25 : 0); p.y += p.vy;
-      if (p.x < -10) p.x = W + 10; else if (p.x > W + 10) p.x = -10;
-      if (p.y < -10) p.y = H + 10; else if (p.y > H + 10) p.y = -10;
-    });
-    draw(t); raf = requestAnimationFrame(loop);
-  }
-  const start = () => { cancelAnimationFrame(raf); if (!reduce && !document.hidden) raf = requestAnimationFrame(loop); };
-  let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(size, 200); });
-  document.addEventListener('visibilitychange', start);
-  size(); start();
-  return { set(i) {
-    th = THEMES[i] || THEMES[0]; const st = document.body.style; st.setProperty('--pbg', th.bg); st.setProperty('--pa', th.a); st.setProperty('--pb', th.b);
-    P.forEach(vel); if (reduce) draw(0);
-  } };
+const BG = (() => { // خلفية خفيفة: عناصر CSS فقط (بدون Canvas ولا حلقة JavaScript) وتتحرك بـ transform على كرت الشاشة
+  const el = document.createElement('div'); el.id = 'bgfx'; el.setAttribute('aria-hidden', 'true');
+  el.innerHTML = '<i class="o o1"></i><i class="o o2"></i><i class="o o3"></i><b class="gr"></b>'
+    + Array.from({ length: 14 }, (_, i) => `<u class="d" style="--l:${(i * 7.3 + 4) % 96}%;--s:${3 + (i * 5) % 4}px;--t:${16 + (i * 7) % 14}s;--w:-${(i * 3.1) % 20}s;--x:${(i % 2 ? 1 : -1) * (14 + i * 3 % 30)}px"></u>`).join('');
+  document.body.prepend(el);
+  const nc = navigator.connection || {};
+  if (nc.saveData || navigator.deviceMemory <= 2 || navigator.hardwareConcurrency <= 2) el.classList.add('lite'); // الأجهزة الضعيفة: خلفية ثابتة بدون حركة
+  document.addEventListener('visibilitychange', () => el.classList.toggle('paused', document.hidden));
+  return { set(i) { const th = THEMES[i] || THEMES[0], st = document.body.style; st.setProperty('--pbg', th.bg); st.setProperty('--pa', th.a); st.setProperty('--pb', th.b); el.dataset.m = th.m; } };
 })();
 
 /* ---------- المساعد: «اعرف عنا» ---------- */
