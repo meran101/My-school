@@ -337,7 +337,15 @@
       "name": "محمد مازن",
       "role": "teacher",
       "subject": "الرياضيات",
-      "perms": {},
+      "perms": {
+        "imwdaz3ly7zk": {
+          "img": true,
+          "text": false
+        },
+        "imwdaz3lyf6v": {},
+        "imwdaz3lynlh": {},
+        "imwdaz3lypzu": {}
+      },
       "joined": "2026-11-12"
     }
   ],
