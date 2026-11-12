@@ -132,31 +132,6 @@ const eb = (a, attrs, label, cls = '') => {
 };
 const imgCtl = p => { const c = eb('img', `data-p="${p}"`, get(p) ? 'تغيير الصورة' : 'إضافة صورة') + (get(p) ? eb('clr', `data-p="${p}"`, 'إزالة الصورة', 'dn') : ''); return c ? `<span class="ec">${c}</span>` : ''; };
 
-/* ---------- الخلفيات المتحركة: لون وحركة خاصان بكل صفحة ---------- */
-const THEMES = [
-  { bg: '#030620', a: '#19d3ff', b: '#3b6bff', m: 'net' },   // أزرق: الصفحة الأولى
-  { bg: '#03130e', a: '#2ee6a6', b: '#19b3d6', m: 'rise' },  // أخضر
-  { bg: '#0b0620', a: '#b48cff', b: '#ff6bd6', m: 'net' },   // بنفسجي
-  { bg: '#190512', a: '#ff6b9a', b: '#ffb347', m: 'rise' },  // وردي
-  { bg: '#150e03', a: '#ffc247', b: '#ff7a3d', m: 'net' },   // ذهبي
-  { bg: '#021a1c', a: '#3ee6e0', b: '#4d8dff', m: 'rise' }   // فيروزي
-];
-function themeFor(h, cur) {
-  const sp = { admin: 2, teachers: 1, messages: 4, live: 3 }; if (sp[h] !== undefined) return sp[h];
-  let x = cur; for (let n = 0; x && n < 12; n++) { const par = parentOf(x); if (!par) break; x = par.id; } // الصفحات الداخلية ترث لون صفحتها الرئيسية
-  const k = D.menu.indexOf(x); return k < 0 ? 0 : k % THEMES.length;
-}
-const BG = (() => { // خلفية خفيفة: عناصر CSS فقط (بدون Canvas ولا حلقة JavaScript) وتتحرك بـ transform على كرت الشاشة
-  const el = document.createElement('div'); el.id = 'bgfx'; el.setAttribute('aria-hidden', 'true');
-  el.innerHTML = '<i class="o o1"></i><i class="o o2"></i><i class="o o3"></i><b class="gr"></b>'
-    + Array.from({ length: 14 }, (_, i) => `<u class="d" style="--l:${(i * 7.3 + 4) % 96}%;--s:${3 + (i * 5) % 4}px;--t:${16 + (i * 7) % 14}s;--w:-${(i * 3.1) % 20}s;--x:${(i % 2 ? 1 : -1) * (14 + i * 3 % 30)}px"></u>`).join('');
-  document.body.prepend(el);
-  const nc = navigator.connection || {};
-  if (nc.saveData || navigator.deviceMemory <= 2 || navigator.hardwareConcurrency <= 2) el.classList.add('lite'); // الأجهزة الضعيفة: خلفية ثابتة بدون حركة
-  document.addEventListener('visibilitychange', () => el.classList.toggle('paused', document.hidden));
-  return { set(i) { const th = THEMES[i] || THEMES[0], st = document.body.style; st.setProperty('--pbg', th.bg); st.setProperty('--pa', th.a); st.setProperty('--pb', th.b); el.dataset.m = th.m; } };
-})();
-
 /* ---------- المساعد: «اعرف عنا» ---------- */
 const CHAT = []; let chatBusy = false;
 const nz = x => String(x || '').replace(/[\u064B-\u0652\u0640]/g, '').replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').toLowerCase();
@@ -571,7 +546,6 @@ function render(keep) {
   const y = scrollY, h = (location.hash || '').slice(1), special = h === 'admin' || h === 'teachers' || h === 'messages' || h === 'live';
   const cur = h.startsWith('p-') && D.map[h.slice(2)] ? h.slice(2) : D.menu[0];
   $('#app').innerHTML = h === 'admin' ? adminView() : h === 'teachers' ? teachersView() : h === 'messages' ? messagesView() : h === 'live' ? liveView() : cur ? pageView(cur) : `<section class="wrap"><p class="empty">لا توجد صفحات بعد.</p>${eb('addmenu', '', '+ إضافة صفحة', 'add')}</section>`;
-  BG.set(themeFor(h, cur));
   if (h === 'live') liveStart();
   if (h === 'messages' && isAdmin()) loadMessages();
   const br = $('#brand'), adm = ED() && isAdmin();
