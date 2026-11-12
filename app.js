@@ -8,7 +8,7 @@ const pv = {}; // معاينة الصور المرفوعة قبل أن يعيد 
 const SUBJECTS = ['اللغة العربية', 'اللغة الإنجليزية', 'التربية الإسلامية', 'الرياضيات', 'الفيزياء', 'الكيمياء', 'الأحياء'];
 const ACTS = [['text', 'تعديل النصوص'], ['img', 'إضافة صور'], ['file', 'رفع ملفات وروابط'], ['add', 'إضافة عناصر وصفحات'], ['del', 'حذف']];
 // الصلاحية المطلوبة لكل زر ('admin' = للمدير فقط)
-const ACT = { img: 'img', clr: 'img', upfile: 'file', add: 'add', addpick: 'add', up: 'add', down: 'add', delb: 'del', del: 'del', addmenu: 'admin', mup: 'admin', mdown: 'admin', mdel: 'admin', mkcode: 'admin', delmember: 'admin', msgcfg: 'admin', reloadmsgs: 'admin' };
+const ACT = { img: 'img', clr: 'img', upfile: 'file', add: 'add', addpick: 'add', up: 'add', down: 'add', delb: 'del', del: 'del', addmenu: 'admin', mup: 'admin', mdown: 'admin', mdel: 'admin', mkcode: 'admin', delmember: 'admin', msgcfg: 'admin', reloadmsgs: 'admin', liveadd: 'admin', livedel: 'admin' };
 
 function guess() {
   const h = location.hostname, gh = h.endsWith('.github.io');
@@ -67,9 +67,9 @@ function migrate(o) {
   (o.pages || []).forEach(p => menu.push(mk(p.title, [{ t: 'p', text: p.text }, ...p.images.map(s => ({ t: 'img', src: s, text: '' }))])));
   return { school: o.school, urgent: o.urgent, menu, map };
 }
-const KEYS = ['school', 'urgent', 'menu', 'codes', 'stageRoot', 'newsPage', 'contactForm', 'ticketSeeded'];
+const KEYS = ['school', 'urgent', 'menu', 'codes', 'stageRoot', 'newsPage', 'contactForm', 'ticketSeeded', 'live'];
 function ensure(d) {
-  d.members = d.members || []; d.codes = d.codes || {};
+  d.members = d.members || []; d.codes = d.codes || {}; d.live = d.live || [];
   const mp = d.map;
   if (!d.stageRoot) d.stageRoot = d.menu.find(id => mp[id].title === 'المرحلة') || d.menu[0];
   if (!d.newsPage) d.newsPage = d.menu.find(id => mp[id].title === 'الأخبار') || '';
@@ -208,6 +208,17 @@ async function loadMessages() {
   } catch (x) { box.innerHTML = '<p class="empty">تعذّر تحميل الرسائل. تأكد أن الجدول منشور على الويب بصيغة CSV.</p>'; }
 }
 
+/* ---------- صفحة live: صور حية ينشرها المدير ---------- */
+const fmtT = s => { try { return new Date(s).toLocaleString('ar-IQ', { dateStyle: 'medium', timeStyle: 'short' }); } catch (x) { return ''; } };
+function liveView() {
+  const list = D.live.map((x, i) => [x, i]).reverse(); // الأحدث أولاً
+  const adm = isAdmin();
+  const add = ED() && adm ? `<p>${eb('liveadd', '', '+ إضافة صورة حية', 'add')}</p>` : adm ? '<p class="hint">شغّل «تشغيل التحرير» لإضافة صور حية.</p>' : '';
+  return `<section class="wrap live"><h1><span class="livedot"></span>live</h1><p class="hint">صور حية تُنشر مباشرة من المدير. تتحدث الصفحة تلقائياً.</p>${add}`
+    + (list.length ? `<div class="grid">${list.map(([x, i]) => `<figure class="card"><img src="${im(x.src)}" alt="" data-zoom="${im(x.src)}"><div class="cb"><time>${e(fmtT(x.ts))}</time>${T('p', `live.${i}.text`, '', 'وصف الصورة')}${eb('livedel', `data-i="${i}"`, 'حذف', 'dn')}</div></figure>`).join('')}</div>` : '<p class="empty">لا توجد صور حية بعد.</p>')
+    + '</section>';
+}
+
 /* ---------- حساب المدير وحساب المدرسين ---------- */
 const initial = n => e((n || '؟').trim()[0] || '؟');
 const avatar = (m, big) => m && m.photo ? `<img class="av ${big ? 'big' : ''}" src="${im(m.photo)}" alt="">` : `<div class="av ${big ? 'big' : ''}">${initial(m && m.name)}</div>`;
@@ -342,9 +353,9 @@ const persist = () => { localStorage.gh_token = token; localStorage.gh_cfg = JSO
 
 /* ---------- العرض ---------- */
 function render(keep) {
-  const y = scrollY, h = (location.hash || '').slice(1), special = h === 'admin' || h === 'teachers' || h === 'messages';
+  const y = scrollY, h = (location.hash || '').slice(1), special = h === 'admin' || h === 'teachers' || h === 'messages' || h === 'live';
   const cur = h.startsWith('p-') && D.map[h.slice(2)] ? h.slice(2) : D.menu[0];
-  $('#app').innerHTML = h === 'admin' ? adminView() : h === 'teachers' ? teachersView() : h === 'messages' ? messagesView() : cur ? pageView(cur) : `<section class="wrap"><p class="empty">لا توجد صفحات بعد.</p>${eb('addmenu', '', '+ إضافة صفحة', 'add')}</section>`;
+  $('#app').innerHTML = h === 'admin' ? adminView() : h === 'teachers' ? teachersView() : h === 'messages' ? messagesView() : h === 'live' ? liveView() : cur ? pageView(cur) : `<section class="wrap"><p class="empty">لا توجد صفحات بعد.</p>${eb('addmenu', '', '+ إضافة صفحة', 'add')}</section>`;
   if (h === 'messages' && isAdmin()) loadMessages();
   const br = $('#brand'), adm = ED() && isAdmin();
   br.innerHTML = adm ? `${T('span', 'school.name', '', 'اسم المدرسة')}<small>${T('span', 'school.subtitle', '', 'عنوان فرعي')}</small>` : `${e(D.school.name)}<small>${e(D.school.subtitle)}</small>`;
@@ -352,6 +363,7 @@ function render(keep) {
   document.title = D.school.name;
   $('#ticker').innerHTML = adm ? `<b>عاجل</b>${T('span', 'urgent', '', 'اكتب الخبر العاجل هنا (اتركه فارغاً لإخفائه)')}` : D.urgent ? `<b>عاجل</b><span>${e(D.urgent)}</span>` : '';
   $('#drawer').innerHTML = D.menu.map((id, k) => `<div class="mi"><a href="#p-${id}" class="${!special && id === cur ? 'on' : ''}">${e(D.map[id].title)}</a>${adm ? `<span class="mc"><button data-a="mup" data-i="${k}" aria-label="أعلى">▲</button><button data-a="mdown" data-i="${k}" aria-label="أسفل">▼</button><button class="dn" data-a="mdel" data-i="${k}" aria-label="حذف">✕</button></span>` : ''}</div>`).join('')
+    + `<a href="#live" class="${h === 'live' ? 'on' : ''}"><span class="livedot"></span>live</a>`
     + (adm ? `<a href="#" data-a="addmenu">+ إضافة صفحة جديدة</a>` : '')
     + `<hr><a href="#admin" class="${h === 'admin' ? 'on' : ''}">حساب المدير</a><a href="#teachers" class="sublink ${h === 'teachers' ? 'on' : ''}">حساب المدرسين</a>${isAdmin() ? `<a href="#messages" class="sublink sub2 ${h === 'messages' ? 'on' : ''}">رسائل التواصل</a>` : ''}`;
   $('#foot').innerHTML = e(D.school.name);
@@ -449,6 +461,11 @@ document.addEventListener('click', async ev => {
       render(1); toast('تم حفظ الإعداد. اضغط «حفظ ونشر» ليعمل النموذج للزوار.');
     },
     reloadmsgs: () => loadMessages(),
+    liveadd: () => pickImage(async path => {
+      D.live.push({ id: uid(), src: path, text: '', ts: new Date().toISOString() }); dirty = true; render(1);
+      if (await saveData(true)) { render(1); toast('تم نشر الصورة الحية. ستظهر للزوار خلال دقيقة تقريباً.'); }
+    }),
+    livedel: () => { if (confirm('حذف هذه الصورة الحية؟')) ch(() => D.live.splice(n, 1))(); },
     delmember: () => { if (confirm('حذف هذا العضو؟')) ch(() => D.members.splice(n, 1))(); },
     addpick: () => modal(`<h2>ماذا تريد أن تضيف؟</h2><div class="pk">${KINDS.filter(([kk]) => kindOk(kk, pid)).map(([kk, l]) => `<button class="eb" data-a="add" data-k="${kk}" data-pid="${pid}" data-i="${n}">${l}</button>`).join('')}</div>`),
     add: () => { if (!kindOk(k, pid)) return toast('ليست لديك صلاحية لهذا النوع.'); closeModal(); dirty = true; const b = DEF[k](); bl().splice(n, 0, b); render(1); if (k === 'img') pickImage(path => { b.src = path; render(1); }); },
@@ -469,6 +486,15 @@ document.addEventListener('click', async ev => {
   };
   A[a] && A[a]();
 });
+
+setInterval(async () => { // تحديث تلقائي لصفحة live عند نشر صور جديدة
+  if (!D || location.hash !== '#live' || dirty || document.hidden) return;
+  try {
+    const r = await fetch('data.json?' + Date.now()); if (!r.ok) return;
+    const nl = (await r.json()).live || [];
+    if (JSON.stringify(nl) !== JSON.stringify(D.live)) { D.live = nl; ORIG.live = clone(nl); render(1); }
+  } catch (x) { }
+}, 30000);
 
 fetch('data.json?' + Date.now()).then(r => r.json()).then(d => {
   const old = !d.map; D = ensure(migrate(d)); ORIG = clone(D);

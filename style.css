@@ -155,3 +155,10 @@ img.av{object-fit:cover;background:#dde3ea}
 .hp{position:absolute;left:-9999px;opacity:0;height:0;width:0}
 .sublink.sub2{margin-inline-start:34px}
 .msg{margin:10px 0}
+
+/* ---------- صفحة live ---------- */
+.livedot{display:inline-block;width:12px;height:12px;border-radius:50%;background:#d93025;margin-inline-end:10px;animation:lv 1.4s infinite}
+@keyframes lv{50%{opacity:.25}}
+.live .card{margin:0}
+.live .card img{height:auto;max-height:420px;cursor:zoom-in}
+@media(prefers-reduced-motion:reduce){.livedot{animation:none}}
