@@ -72,3 +72,23 @@ figure{margin:0}
 #savebar .btn{margin:0}
 @media(max-width:520px){.hero h1{font-size:1.7rem}.bar b{font-size:1.25rem}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+
+/* ---------- وضع التحرير المباشر ---------- */
+.ed{white-space:pre-wrap;outline:2px dashed rgba(212,162,76,.9);outline-offset:3px;border-radius:4px;min-height:1.2em;cursor:text}
+.ed:empty::before{content:attr(data-ph);opacity:.55}
+.ed:focus{background:rgba(212,162,76,.18);outline-style:solid}
+.eb{font:inherit;font-size:.85rem;padding:5px 12px;border-radius:8px;border:0;background:var(--gold);color:#2b2106;cursor:pointer;margin:4px 0 4px 6px;font-weight:600}
+.eb.dn{background:#b3261e;color:#fff}
+.eb.add{display:inline-block;margin:12px 0;padding:9px 18px;background:var(--teal);color:#fff;font-size:.95rem}
+.ec{display:flex;gap:4px;flex-wrap:wrap}
+.hero .ec{justify-content:center;margin-top:12px}
+div.bar{cursor:default}
+div.bar:hover{transform:none}
+#brand .ed,.bar .ed,.box h2 .ed{display:inline-block}
+#ticker .ed{flex:1}
+.row .grow{flex:1;min-width:140px}
+.box input{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;flex:1;min-width:140px}
+#tools{position:fixed;bottom:12px;left:12px;z-index:70;display:flex;gap:8px}
+#tools:empty{display:none}
+#tools button{font:inherit;padding:10px 18px;border-radius:999px;border:0;background:#fff;color:var(--navy);box-shadow:0 4px 14px rgba(0,0,0,.25);cursor:pointer;font-weight:600}
+#tools .sv{background:var(--teal);color:#fff}
