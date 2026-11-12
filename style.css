@@ -143,3 +143,6 @@ a.bar:hover b{color:var(--teal)}
 .perm{padding-inline-start:20px}
 .adm select{width:100%;font:inherit;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:#fff}
 .adm .btn{margin-inline-end:8px}
+
+img.av{object-fit:cover;background:#dde3ea}
+.prof .eb{margin:6px 0 0 6px}

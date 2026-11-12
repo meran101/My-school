@@ -104,7 +104,8 @@ function guardOk() { // فحص احتياطي قبل الحفظ: المدرس ل
   const J = JSON.stringify;
   if (['school', 'urgent', 'menu', 'codes', 'stageRoot', 'newsPage'].some(k => J(D[k]) !== J(ORIG[k]))) return false;
   const om = Object.fromEntries(ORIG.members.map(m => [m.id, m]));
-  if (D.members.some(m => om[m.id] ? J(m) !== J(om[m.id]) : m.id !== me.id)) return false;
+  const nop = m => { const c = { ...m }; delete c.photo; return J(c); };
+  if (D.members.some(m => om[m.id] ? (m.id === me.id ? nop(m) !== nop(om[m.id]) : J(m) !== J(om[m.id])) : m.id !== me.id)) return false;
   if (ORIG.members.some(m => !D.members.find(x => x.id === m.id))) return false;
   return Object.keys(D.map).every(pid => J(D.map[pid]) === J(ORIG.map[pid]) || anyPerm(pid));
 }
@@ -163,7 +164,10 @@ function pageView(pid) {
 
 /* ---------- حساب المدير وحساب المدرسين ---------- */
 const initial = n => e((n || '؟').trim()[0] || '؟');
-const profile = () => `<div class="prof"><div class="av big">${initial(me.name)}</div><div><h1>${e(me.name)}</h1><p>${me.role === 'admin' ? 'المدير' : 'مدرس ' + e(me.subject)}</p></div></div>`;
+const avatar = (m, big) => m && m.photo ? `<img class="av ${big ? 'big' : ''}" src="${im(m.photo)}" alt="">` : `<div class="av ${big ? 'big' : ''}">${initial(m && m.name)}</div>`;
+const myMember = () => me && D.members.find(x => x.id === me.id);
+const profile = () => { const m = myMember() || me; return `<div class="prof">${avatar(m, 1)}<div><h1>${e(me.name)}</h1><p>${me.role === 'admin' ? 'المدير' : 'مدرس ' + e(me.subject)}</p>
+  <button class="eb" data-a="myphoto">${m.photo ? 'تغيير الصورة' : 'إضافة صورة شخصية'}</button>${m.photo ? '<button class="eb dn" data-a="delphoto">إزالة الصورة</button>' : ''}</div></div>`; };
 function adminView() {
   if (isAdmin()) {
     const codes = JSON.parse(localStorage.gh_codes || '{}');
@@ -189,7 +193,7 @@ function membersAdmin() {
   if (!list.length) return '<p class="empty">لم يسجّل أي مدرس بعد.</p>';
   return list.map(([m, i]) => {
     m.perms = m.perms || {}; sc.forEach(([id]) => { m.perms[id] = m.perms[id] || {}; });
-    return `<div class="sub"><div class="row"><div class="av">${initial(m.name)}</div><b class="grow">${e(m.name)} <small>(${e(m.subject)})</small></b><button class="eb dn" data-a="delmember" data-i="${i}">حذف العضو</button></div>
+    return `<div class="sub"><div class="row">${avatar(m)}<b class="grow">${e(m.name)} <small>(${e(m.subject)})</small></b><button class="eb dn" data-a="delmember" data-i="${i}">حذف العضو</button></div>
       <div class="tbl"><table><tr><th></th>${ACTS.map(([, l]) => `<th>${l}</th>`).join('')}</tr>
       ${sc.map(([id, l]) => `<tr><td>${e(l)}</td>${ACTS.map(([k]) => `<td><input type="checkbox" data-c="members.${i}.perms.${id}.${k}" ${m.perms[id][k] ? 'checked' : ''} aria-label="${e(l)}"></td>`).join('')}</tr>`).join('')}</table></div></div>`;
   }).join('');
@@ -205,7 +209,7 @@ function teachersView() {
   const perm = mine ? scopes().map(([id, l]) => { const g = ACTS.filter(([k]) => mine.perms && mine.perms[id] && mine.perms[id][k]).map(x => x[1]); return `<li><b>${e(l)}:</b> ${g.length ? g.join('، ') : 'لا توجد صلاحيات بعد'}</li>`; }).join('') : '';
   const ordered = [...D.members.filter(m => m.role === 'admin'), ...D.members.filter(m => m.role !== 'admin')];
   return `<section class="wrap">${profile()}${mine ? `<h2>صلاحياتك</h2><ul class="perm">${perm}</ul><p class="hint">تعديلاتك تقتصر على صفحة مادتك داخل المراحل المسموحة لك.</p>` : ''}
-    <h2>أعضاء الموقع</h2><div class="mem">${ordered.map(m => `<div class="mc2"><div class="av">${initial(m.name)}</div><div><b>${e(m.name)}</b><span>${m.role === 'admin' ? 'المدير' : 'مدرس ' + e(m.subject)}</span></div></div>`).join('')}</div>
+    <h2>أعضاء الموقع</h2><div class="mem">${ordered.map(m => `<div class="mc2">${avatar(m)}<div><b>${e(m.name)}</b><span>${m.role === 'admin' ? 'المدير' : 'مدرس ' + e(m.subject)}</span></div></div>`).join('')}</div>
     <p><button class="btn ghost" data-a="logout">تسجيل الخروج</button></p></section>`;
 }
 
@@ -243,14 +247,16 @@ async function saveData(quiet) {
     return true;
   } catch (x) { toast('فشل الحفظ. تحقق من الاتصال أو من صلاحيات الرمز.'); return false; }
 }
-function pickImage(cb) {
+function pickImage(cb, sq) {
   const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*';
   i.onchange = async () => {
     if (!i.files[0]) return; toast('جارٍ رفع الصورة...');
     try {
-      const b = await createImageBitmap(i.files[0]), s = Math.min(1, 1400 / Math.max(b.width, b.height));
-      const c = document.createElement('canvas'); c.width = Math.round(b.width * s); c.height = Math.round(b.height * s);
-      c.getContext('2d').drawImage(b, 0, 0, c.width, c.height);
+      const b = await createImageBitmap(i.files[0]), side = Math.min(b.width, b.height);
+      const s = sq ? Math.min(1, 400 / side) : Math.min(1, 1400 / Math.max(b.width, b.height));
+      const c = document.createElement('canvas'); c.width = Math.round((sq ? side : b.width) * s); c.height = Math.round((sq ? side : b.height) * s);
+      if (sq) c.getContext('2d').drawImage(b, (b.width - side) / 2, (b.height - side) / 2, side, side, 0, 0, c.width, c.height);
+      else c.getContext('2d').drawImage(b, 0, 0, c.width, c.height);
       const url = c.toDataURL('image/jpeg', .85), path = 'images/' + Date.now() + '.jpg';
       await put(path, url.split(',')[1], 'رفع صورة'); pv[path] = url; dirty = true; cb(path);
       toast('تم رفع الصورة. اضغط «حفظ ونشر» لتثبيت التغييرات.');
@@ -294,7 +300,7 @@ function render(keep) {
   $('#foot').innerHTML = e(D.school.name);
   let m = $('#me'); if (!m) { m = document.createElement('a'); m.id = 'me'; $('header').append(m); }
   m.href = me && me.role === 'admin' ? '#admin' : '#teachers';
-  m.innerHTML = me ? `<span class="av">${initial(me.name)}</span><span class="nm">${e(me.name)}</span>` : '';
+  m.innerHTML = me ? `${avatar(myMember() || me)}<span class="nm">${e(me.name)}</span>` : '';
   m.hidden = !me;
   let t = $('#tools'); if (!t) { t = document.createElement('div'); t.id = 'tools'; document.body.append(t); }
   t.innerHTML = token && me ? `<button data-a="toggle">${editing ? 'إيقاف التحرير' : 'تشغيل التحرير'}</button>${editing ? '<button class="sv" data-a="save">حفظ ونشر</button>' : ''}` : '';
@@ -365,6 +371,8 @@ document.addEventListener('click', async ev => {
       render(1); toast('تم إنشاء الرمز. اضغط «حفظ ونشر» ليعمل مع المدرسين.');
     },
     copycode: () => { const c = JSON.parse(localStorage.gh_codes || '{}')[s]; navigator.clipboard && navigator.clipboard.writeText(c); toast('تم نسخ الرمز.'); },
+    myphoto: () => pickImage(path => { const m = myMember(); if (m) { m.photo = path; dirty = true; } render(1); }, true),
+    delphoto: () => { const m = myMember(); if (m) { delete m.photo; dirty = true; render(1); } },
     delmember: () => { if (confirm('حذف هذا العضو؟')) ch(() => D.members.splice(n, 1))(); },
     addpick: () => modal(`<h2>ماذا تريد أن تضيف؟</h2><div class="pk">${KINDS.filter(([kk]) => kindOk(kk, pid)).map(([kk, l]) => `<button class="eb" data-a="add" data-k="${kk}" data-pid="${pid}" data-i="${n}">${l}</button>`).join('')}</div>`),
     add: () => { if (!kindOk(k, pid)) return toast('ليست لديك صلاحية لهذا النوع.'); closeModal(); dirty = true; const b = DEF[k](); bl().splice(n, 0, b); render(1); if (k === 'img') pickImage(path => { b.src = path; render(1); }); },
