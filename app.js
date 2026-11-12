@@ -67,7 +67,7 @@ function migrate(o) {
   (o.pages || []).forEach(p => menu.push(mk(p.title, [{ t: 'p', text: p.text }, ...p.images.map(s => ({ t: 'img', src: s, text: '' }))])));
   return { school: o.school, urgent: o.urgent, menu, map };
 }
-const KEYS = ['school', 'urgent', 'menu', 'codes', 'stageRoot', 'newsPage', 'contactForm', 'ticketSeeded', 'live', 'schoolImg', 'inbox'];
+const KEYS = ['school', 'urgent', 'menu', 'codes', 'stageRoot', 'newsPage', 'contactForm', 'ticketSeeded', 'live', 'schoolImg', 'inbox', 'aboutSeeded'];
 function ensure(d) {
   d.members = d.members || []; d.codes = d.codes || {}; d.live = d.live || []; d.schoolImg = d.schoolImg || { src: '', pos: 'center' };
   const mp = d.map;
@@ -78,6 +78,12 @@ function ensure(d) {
     const c = d.menu.find(id => mp[id].title === 'تواصل معنا');
     if (c) mp[c].blocks.push(DEF.ticket());
     d.ticketSeeded = true;
+  }
+  if (!d.aboutSeeded) { // صفحة «اعرف عنا» مع المساعد الذكي
+    if (!d.menu.some(id => (mp[id] || {}).title === 'اعرف عنا')) {
+      const id = uid(); mp[id] = { id, title: 'اعرف عنا', blocks: [DEF.chat()] }; d.menu.push(id);
+    }
+    d.aboutSeeded = true;
   }
   return d;
 }
@@ -126,6 +132,46 @@ const eb = (a, attrs, label, cls = '') => {
 };
 const imgCtl = p => { const c = eb('img', `data-p="${p}"`, get(p) ? 'تغيير الصورة' : 'إضافة صورة') + (get(p) ? eb('clr', `data-p="${p}"`, 'إزالة الصورة', 'dn') : ''); return c ? `<span class="ec">${c}</span>` : ''; };
 
+/* ---------- المساعد: «اعرف عنا» ---------- */
+const CHAT = []; let chatBusy = false;
+const nz = x => String(x || '').replace(/[\u064B-\u0652\u0640]/g, '').replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').toLowerCase();
+const STOP = new Set(['من', 'في', 'على', 'الي', 'الى', 'عن', 'ما', 'هل', 'هو', 'هي', 'ماذا', 'كيف', 'اين', 'متي', 'هذا', 'هذه', 'ذلك', 'لماذا', 'كم', 'لي', 'لنا', 'عند', 'مع']);
+const toks = q => nz(q).split(/[^\u0621-\u063A\u0641-\u064Aa-z0-9]+/).filter(w => w.length > 1).map(w => w.length > 3 && w.startsWith('ال') ? w.slice(2) : w).filter(w => !STOP.has(w)).flatMap(w => w.length > 4 && /^[اتينسبلوف]/.test(w) ? [w, w.slice(1)] : [w]);
+function siteChunks() { // نصوص الموقع كلها مقسّمة حسب العنصر
+  const out = [], sch = D.school || {};
+  if (sch.name) out.push({ id: '', page: 'المدرسة', text: [sch.name, sch.subtitle].filter(Boolean).join(' - ') });
+  Object.values(D.map).forEach(pg => pg.blocks.forEach(b => {
+    let t = '';
+    if (b.t === 'p' || b.t === 'h') t = b.text; else if (b.t === 'card') t = [b.title, b.date, b.text].filter(Boolean).join(': ');
+    else if (b.t === 'btn') t = b.text; else if (b.t === 'img') t = b.text; else if (b.t === 'hero') t = [b.title, b.text].filter(Boolean).join(': ');
+    t = String(t || '').trim(); if (t) out.push({ id: pg.id, page: pg.title, text: t });
+  }));
+  return out;
+}
+function localAnswer(q) {
+  const qs = toks(q); if (!qs.length) return null;
+  const sc = siteChunks().map(c => { const hay = nz(c.text), pt = nz(c.page); let n = 0; qs.forEach(w => { if (hay.includes(w)) n += 1; if (pt.includes(w)) n += 1.5; }); return { c, n }; })
+    .filter(x => x.n > 0).sort((a, b) => b.n - a.n).slice(0, 3);
+  if (!sc.length) return null;
+  return { t: sc.map(x => x.c.text).join('\n\n'), links: [...new Map(sc.filter(x => x.c.id).map(x => [x.c.id, { id: x.c.id, title: x.c.page }])).values()] };
+}
+async function aiAnswer(q) {
+  const ctx = siteChunks().map(c => `[${c.page}] ${c.text}`).join('\n').slice(0, 7000);
+  const sys = `أنت مساعد الموقع الرسمي لـ «${(D.school || {}).name || 'المدرسة'}». أجب بالعربية الفصحى المبسطة وباختصار، اعتماداً على معلومات الموقع أدناه فقط. إذا لم تجد الإجابة فيها فقل ذلك بلطف واقترح صفحة «تواصل معنا». لا تخترع معلومات.\n\nمعلومات الموقع:\n${ctx}`;
+  const hist = CHAT.slice(-7, -1).filter(m => !m.err).map(m => ({ role: m.r === 'u' ? 'user' : 'assistant', content: m.t.slice(0, 500) }));
+  const ctrl = new AbortController(), tm = setTimeout(() => ctrl.abort(), 25000);
+  try {
+    const r = await fetch('https://text.pollinations.ai/openai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: ctrl.signal, body: JSON.stringify({ model: 'openai', temperature: 0.3, messages: [{ role: 'system', content: sys }, ...hist, { role: 'user', content: q }] }) });
+    if (!r.ok) return null;
+    const j = await r.json(), t = j && j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content;
+    return t ? String(t).trim().slice(0, 2500) : null;
+  } catch (x) { return null; } finally { clearTimeout(tm); }
+}
+function chatHTML() {
+  return CHAT.map(m => m.r === 'u' ? `<div class="cm u">${nl(m.t)}</div>` : `<div class="cm b">${m.typing ? '<span class="dots"><i></i><i></i><i></i></span>' : nl(m.t)}${(m.links || []).map(l => `<a class="cl" href="#p-${e(l.id)}">‹ ${e(l.title)}</a>`).join('')}</div>`).join('');
+}
+function chatDraw() { const l = $('#chatlog'); if (l) { l.innerHTML = chatHTML(); l.scrollTop = l.scrollHeight; } }
+
 /* ---------- أنواع العناصر ---------- */
 const B = {
   hero: (b, p) => `<section class="hero" style="${b.src ? `background-image:linear-gradient(rgba(20,54,92,.75),rgba(20,54,92,.75)),url('${im(b.src)}')` : ''}">${T('h1', p + '.title', '', 'العنوان الكبير')}${T('p', p + '.text', '', 'نص ترحيبي')}${imgCtl(p + '.src')}</section>`,
@@ -143,16 +189,18 @@ const B = {
       : `<a class="bar c${i % 3}" href="#p-${b.ref}"><b>${e(c.title)}</b><span>فتح</span></a>`;
   },
   ticket: (b, p) => `<div class="panel">${T('h3', p + '.title', '', 'عنوان اللوحة')}${T('p', p + '.text', '', 'نص اللوحة')}<button class="btn" data-a="ticket">إرسال تذكرة</button></div>`,
+  chat: (b, p) => `<div class="panel chat">${T('h3', p + '.title', '', 'عنوان المساعد')}${T('p', p + '.text', '', 'وصف المساعد')}${ED() && isAdmin() ? `<label class="hint"><input type="checkbox" data-c="${p}.ai" ${b.ai !== false ? 'checked' : ''}> استخدام الذكاء الاصطناعي الخارجي (وإلا يُجيب من نصوص الموقع فقط)</label>` : ''}<div id="chatlog" class="chatlog" aria-live="polite">${chatHTML()}</div><div class="chips">${['ما هي المدرسة؟', 'كيف أتواصل مع الإدارة؟', 'ما آخر الأخبار؟'].map(q => `<button class="chip" data-a="chatq" data-k="${e(q)}">${e(q)}</button>`).join('')}</div><div class="chatin"><input id="chatq" maxlength="300" placeholder="اكتب سؤالك هنا..." data-ai="${b.ai !== false ? 1 : 0}" autocomplete="off"><button class="btn" data-a="chatsend">إرسال</button></div>${CHAT.length ? '<button class="eb" data-a="chatclear" style="background:#eef2f6">مسح المحادثة</button>' : ''}</div>`,
   hr: () => '<hr>'
 };
-const KINDS = [['h', 'عنوان'], ['p', 'نص'], ['img', 'صورة'], ['card', 'خبر أو بطاقة'], ['btn', 'زر رابط أو ملف'], ['page', 'صفحة داخلية جديدة'], ['hr', 'فاصل'], ['hero', 'غلاف كبير'], ['ticket', 'لوحة تذكرة التواصل']];
+const KINDS = [['h', 'عنوان'], ['p', 'نص'], ['img', 'صورة'], ['card', 'خبر أو بطاقة'], ['btn', 'زر رابط أو ملف'], ['page', 'صفحة داخلية جديدة'], ['hr', 'فاصل'], ['hero', 'غلاف كبير'], ['ticket', 'لوحة تذكرة التواصل'], ['chat', 'مساعد ذكي (اعرف عنا)']];
 const DEF = {
   h: () => ({ t: 'h', text: '' }), p: () => ({ t: 'p', text: '' }), img: () => ({ t: 'img', src: '', text: '' }),
   card: () => ({ t: 'card', title: '', text: '', date: TODAY, src: '' }), btn: () => ({ t: 'btn', text: 'زر جديد', url: '' }),
   hr: () => ({ t: 'hr' }), ticket: () => ({ t: 'ticket', title: 'راسلنا', text: 'لديك استفسار أو ملاحظة؟ اكتب لنا تذكرة وستصل رسالتك إلى إدارة المدرسة.' }), hero: () => ({ t: 'hero', title: 'عنوان كبير', text: '', src: '' }),
+  chat: () => ({ t: 'chat', title: 'اسألنا عن المدرسة', text: 'مساعد ذكي يجيب عن أسئلتك حول المدرسة اعتماداً على محتوى هذا الموقع.', ai: true }),
   page: () => { const id = uid(); D.map[id] = { id, title: 'صفحة جديدة', blocks: [] }; return { t: 'page', ref: id }; }
 };
-const kindOk = (k, pid) => isAdmin() || (k === 'hero' || k === 'ticket' ? false : k === 'img' ? can('img', pid) : k === 'btn' ? can('file', pid) : true);
+const kindOk = (k, pid) => isAdmin() || (k === 'hero' || k === 'ticket' || k === 'chat' ? false : k === 'img' ? can('img', pid) : k === 'btn' ? can('file', pid) : true);
 
 const addBar = (pid, i) => ED() && can('add') ? `<button class="addbar" data-a="addpick" data-pid="${pid}" data-i="${i}">+ إضافة هنا</button>` : '';
 const blk = (b, pid, i) => {
@@ -418,6 +466,7 @@ const closeModal = () => { $('#modal').hidden = true; };
 $('#modal').onclick = ev => { if (ev.target.id === 'modal' || ev.target.classList.contains('x')) closeModal(); };
 document.addEventListener('keydown', ev => {
   if (ev.key === 'Escape') { closeModal(); menu(false); }
+  if (ev.key === 'Enter' && ev.target.id === 'chatq') { ev.preventDefault(); const b = $('[data-a="chatsend"]'); if (b) b.click(); }
   if (ev.key === 'Enter' && ev.target.dataset && ev.target.dataset.e && ev.target.tagName !== 'P') ev.preventDefault(); // سطر واحد للعناوين
 });
 addEventListener('hashchange', () => render());
@@ -466,6 +515,19 @@ document.addEventListener('click', async ev => {
     },
     logout: () => { token = ''; me = null; editing = false; ['gh_token', 'gh_me'].forEach(x => localStorage.removeItem(x)); render(); },
     toggle: () => { editing = !editing; render(1); },
+    chatq: () => { $('#chatq').value = k; A.chatsend(); },
+    chatclear: () => { CHAT.length = 0; render(1); },
+    chatsend: async () => {
+      const inp = $('#chatq'), q = inp ? inp.value.trim().slice(0, 300) : ''; if (!q || chatBusy) return;
+      chatBusy = true; inp.value = ''; CHAT.push({ r: 'u', t: q }); const typing = { r: 'b', typing: true }; CHAT.push(typing); chatDraw();
+      try {
+        let ans = null, ai = inp.dataset.ai === '1' ? await aiAnswer(q) : null;
+        if (ai) ans = { t: ai };
+        else ans = localAnswer(q) || { t: 'لم أجد إجابة عن سؤالك في محتوى الموقع. يمكنك مراسلة الإدارة من صفحة «تواصل معنا».' };
+        CHAT[CHAT.indexOf(typing)] = { r: 'b', t: ans.t, links: ans.links || [] };
+      } catch (x) { CHAT[CHAT.indexOf(typing)] = { r: 'b', t: 'حدث خطأ. حاول مرة أخرى.', err: 1 }; }
+      chatBusy = false; chatDraw(); const i2 = $('#chatq'); if (i2) i2.focus();
+    },
     mkcode: async () => {
       const code = genCode(); toast('جارٍ إنشاء الرمز...');
       D.codes[s] = await seal(code, token); dirty = true;
