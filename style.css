@@ -358,7 +358,7 @@ a.bar:hover::after{transform:translateX(-8px)}
 
 
 /* ================= خلفيات ملونة متحركة لكل صفحة ================= */
-#bgfx{position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none}
+#bgfx{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;contain:strict}
 body{background:var(--pbg,#030620);background-image:none;color:#e6eefb;transition:background-color .7s}
 h1,h2,h3{color:#fff}
 .blk p,.hero p{color:#dbe6f7}
@@ -396,3 +396,29 @@ input,textarea,select{color:#17212b}
 .lv-dots button.on,.lv-bar{background:var(--pa,#19d3ff)}
 
 @media print{#bgfx{display:none}body{background:#fff!important;color:#000}h1,h2,h3,.blk p,.bar b,.cb h3{color:#000!important}.card,.bar,.panel{background:#fff;box-shadow:none;border:1px solid #bbb}}
+
+
+/* ================= خلفية خفيفة: توهجات تتحرك ببطء + شبكة أو نقاط صاعدة ================= */
+#bgfx::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 50% 28%,transparent 38%,rgba(0,0,0,.38))}
+#bgfx .o{position:absolute;border-radius:50%;will-change:transform}
+#bgfx .o1{width:70vmax;height:70vmax;left:-18vmax;top:-26vmax;opacity:.30;background:radial-gradient(circle,var(--pa,#19d3ff) 0,transparent 64%);animation:o1 28s ease-in-out infinite alternate}
+#bgfx .o2{width:76vmax;height:76vmax;right:-24vmax;bottom:-30vmax;opacity:.26;background:radial-gradient(circle,var(--pb,#3b6bff) 0,transparent 64%);animation:o2 34s ease-in-out infinite alternate}
+#bgfx .o3{width:46vmax;height:46vmax;left:34%;top:38%;opacity:.14;background:radial-gradient(circle,var(--pa,#19d3ff) 0,transparent 66%);animation:o3 40s ease-in-out infinite alternate}
+@keyframes o1{to{transform:translate3d(16vmax,12vmax,0) scale(1.15)}}
+@keyframes o2{to{transform:translate3d(-16vmax,-12vmax,0) scale(1.1)}}
+@keyframes o3{to{transform:translate3d(-14vmax,10vmax,0) scale(1.25)}}
+#bgfx .gr{position:absolute;inset:-60px;background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);background-size:60px 60px;animation:gm 50s linear infinite;will-change:transform}
+@keyframes gm{to{transform:translate3d(60px,60px,0)}}
+#bgfx .d{position:absolute;left:var(--l);bottom:-14px;width:var(--s);height:var(--s);border-radius:50%;background:var(--pb,#3b6bff);box-shadow:0 0 10px 2px var(--pa,#19d3ff);opacity:0;animation:up var(--t) linear var(--w) infinite;will-change:transform,opacity}
+@keyframes up{0%{transform:translate3d(0,0,0);opacity:0}12%{opacity:.8}85%{opacity:.5}100%{transform:translate3d(var(--x),-112vh,0);opacity:0}}
+#bgfx[data-m="rise"] .gr,#bgfx:not([data-m="rise"]) .d{display:none}
+#bgfx.paused *{animation-play-state:paused!important}
+#bgfx.lite *{animation:none!important}
+#bgfx.lite .d{display:none}
+@media(max-width:700px){#bgfx .d:nth-of-type(n+9){display:none}}
+@media(prefers-reduced-motion:reduce){#bgfx *{animation:none!important}#bgfx .d{display:none}}
+
+/* تخفيف الحمل: إزالة التمويه الثقيل (backdrop-filter) وحركات الغلاف الكبيرة */
+.card,.bar,.panel,.msgrow,.mc2,.adm details,.sub{backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(255,255,255,.085)}
+header{backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(4,10,30,.94)}
+.hero::before,.hero::after{animation:none}
