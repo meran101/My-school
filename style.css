@@ -288,3 +288,40 @@ a.bar::after{content:"‹";color:var(--gold);font-size:1.9rem;line-height:1;marg
 
 /* الطباعة */
 @media print{header,#drawer,#overlay,#tools,#savebar,#toast,.addbar,.chips,.chatin{display:none!important}body{background:#fff}.hero{background:#fff!important;color:#000;padding:20px 0}.hero h1,.hero p{color:#000}.card,.bar,.panel{box-shadow:none;border:1px solid #bbb}}
+
+
+/* ================= الخلفيات والحركة ================= */
+body{background-color:var(--bg);background-image:radial-gradient(900px 520px at 100% -5%,rgba(23,117,110,.11),transparent 62%),radial-gradient(820px 500px at 0% 45%,rgba(201,154,59,.11),transparent 62%),radial-gradient(rgba(15,44,79,.055) 1px,transparent 1.3px);background-size:auto,auto,22px 22px;background-attachment:fixed,fixed,scroll}
+
+/* غلاف متحرك: نقش يتحرك ببطء وتوهج يتنفس */
+.hero::after{inset:-40px;animation:drift 16s linear infinite}
+@keyframes drift{to{transform:translateX(36.77px)}}
+.hero::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
+background:radial-gradient(520px 320px at 18% 28%,rgba(201,154,59,.30),transparent 70%),radial-gradient(560px 360px at 84% 76%,rgba(46,196,182,.26),transparent 70%);animation:glow 9s ease-in-out infinite alternate}
+@keyframes glow{from{opacity:.55;transform:scale(1)}to{opacity:1;transform:scale(1.08)}}
+
+/* شريط التقدم أثناء التمرير */
+#prog{position:fixed;top:0;inset-inline:0;height:3px;z-index:90;background:linear-gradient(90deg,var(--gold),#5ad1c6);transform:scaleX(0);transform-origin:100% 50%;pointer-events:none}
+
+/* ظهور العناصر عند التمرير */
+.rv-on .rv{opacity:0;transform:translateY(22px);transition:opacity .6s ease,transform .6s cubic-bezier(.2,.7,.2,1)}
+.rv-on .rv.in{opacity:1;transform:none}
+
+/* تفاعل البطاقات والأشرطة والأزرار */
+.card img{transition:transform .6s cubic-bezier(.2,.7,.2,1)}
+.card:hover img{transform:scale(1.05)}
+.card{transition:transform .25s,box-shadow .25s}
+.card:hover{transform:translateY(-4px);box-shadow:var(--sh2)}
+a.bar::after{transition:transform .25s}
+a.bar:hover::after{transform:translateX(-8px)}
+.btn{position:relative;overflow:hidden}
+.btn::after{content:"";position:absolute;top:0;bottom:0;width:60%;left:-80%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.45),transparent);transform:skewX(-20deg);pointer-events:none}
+.btn:hover::after{left:130%;transition:left .7s ease}
+#ticker b{animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 6px rgba(43,33,6,.18)}}
+
+/* التذييل بنقش خفيف */
+#foot{background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.035) 0 1px,transparent 1px 26px),linear-gradient(180deg,#0f2c4f,#0b2240)}
+
+@media(prefers-reduced-motion:reduce){.hero::before,.hero::after,#ticker b{animation:none}#prog{display:none}.rv-on .rv{opacity:1;transform:none;transition:none}.card:hover,.card:hover img{transform:none}}
+@media print{.rv-on .rv{opacity:1!important;transform:none!important}.hero::before,.hero::after,#prog{display:none}}
