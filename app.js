@@ -157,7 +157,7 @@ function localAnswer(q) {
 }
 async function aiAnswer(q) {
   const ctx = siteChunks().map(c => `[${c.page}] ${c.text}`).join('\n').slice(0, 7000);
-  const sys = `أنت مساعد الموقع الرسمي لـ «${(D.school || {}).name || 'المدرسة'}». أجب بالعربية الفصحى المبسطة وباختصار، اعتماداً على معلومات الموقع أدناه فقط. إذا لم تجد الإجابة فيها فقل ذلك بلطف واقترح صفحة «تواصل معنا». لا تخترع معلومات.\n\nمعلومات الموقع:\n${ctx}`;
+  const sys = `أنت مساعد ذكي ودود في الموقع الرسمي لـ «${(D.school || {}).name || 'المدرسة'}»، وطلابك وزوارك عرب. أجب بالعربية الفصحى المبسطة وبوضوح واختصار عن أي سؤال، سواء كان عن المدرسة أو سؤالاً عاماً (علوم، دراسة، ثقافة، معلومات عامة...). القاعدة: أي معلومة تخص هذه المدرسة تحديداً (الدوام، الأسماء، التواريخ، الأرقام، الأخبار) خذها من معلومات الموقع أدناه فقط، وإذا لم تجدها فقل ذلك واقترح صفحة «تواصل معنا» ولا تخترعها. أما الأسئلة العامة فأجب عنها من معرفتك، وإذا لم تكن متأكداً فاذكر ذلك بصراحة. لا تُجب عن أي محتوى غير لائق أو ضار، ووجّه الطالب بلطف نحو ما ينفعه.\n\nمعلومات الموقع:\n${ctx}`;
   const hist = CHAT.slice(-7, -1).filter(m => !m.err).map(m => ({ role: m.r === 'u' ? 'user' : 'assistant', content: m.t.slice(0, 500) }));
   const ctrl = new AbortController(), tm = setTimeout(() => ctrl.abort(), 25000);
   try {
@@ -189,7 +189,7 @@ const B = {
       : `<a class="bar c${i % 3}" href="#p-${b.ref}"><b>${e(c.title)}</b><span>فتح</span></a>`;
   },
   ticket: (b, p) => `<div class="panel">${T('h3', p + '.title', '', 'عنوان اللوحة')}${T('p', p + '.text', '', 'نص اللوحة')}<button class="btn" data-a="ticket">إرسال تذكرة</button></div>`,
-  chat: (b, p) => `<div class="panel chat">${T('h3', p + '.title', '', 'عنوان المساعد')}${T('p', p + '.text', '', 'وصف المساعد')}${ED() && isAdmin() ? `<label class="hint"><input type="checkbox" data-c="${p}.ai" ${b.ai !== false ? 'checked' : ''}> استخدام الذكاء الاصطناعي الخارجي (وإلا يُجيب من نصوص الموقع فقط)</label>` : ''}<div id="chatlog" class="chatlog" aria-live="polite">${chatHTML()}</div><div class="chips">${['ما هي المدرسة؟', 'كيف أتواصل مع الإدارة؟', 'ما آخر الأخبار؟'].map(q => `<button class="chip" data-a="chatq" data-k="${e(q)}">${e(q)}</button>`).join('')}</div><div class="chatin"><input id="chatq" maxlength="300" placeholder="اكتب سؤالك هنا..." data-ai="${b.ai !== false ? 1 : 0}" autocomplete="off"><button class="btn" data-a="chatsend">إرسال</button></div>${CHAT.length ? '<button class="eb" data-a="chatclear" style="background:#eef2f6">مسح المحادثة</button>' : ''}</div>`,
+  chat: (b, p) => `<div class="panel chat">${T('h3', p + '.title', '', 'عنوان المساعد')}${T('p', p + '.text', '', 'وصف المساعد')}${ED() && isAdmin() ? `<label class="hint"><input type="checkbox" data-c="${p}.ai" ${b.ai !== false ? 'checked' : ''}> الذكاء الاصطناعي: يجيب عن الأسئلة العامة أيضاً (وإذا أُلغي يُجيب من نصوص الموقع فقط)</label>` : ''}<div id="chatlog" class="chatlog" aria-live="polite">${chatHTML()}</div><div class="chips">${['ما هي المدرسة؟', 'كيف أتواصل مع الإدارة؟', 'اشرح لي قانون نيوتن الأول'].map(q => `<button class="chip" data-a="chatq" data-k="${e(q)}">${e(q)}</button>`).join('')}</div><div class="chatin"><input id="chatq" maxlength="300" placeholder="اسأل عن المدرسة أو أي موضوع..." data-ai="${b.ai !== false ? 1 : 0}" autocomplete="off"><button class="btn" data-a="chatsend">إرسال</button></div>${CHAT.length ? '<button class="eb" data-a="chatclear" style="background:#eef2f6">مسح المحادثة</button>' : ''}</div>`,
   hr: () => '<hr>'
 };
 const KINDS = [['h', 'عنوان'], ['p', 'نص'], ['img', 'صورة'], ['card', 'خبر أو بطاقة'], ['btn', 'زر رابط أو ملف'], ['page', 'صفحة داخلية جديدة'], ['hr', 'فاصل'], ['hero', 'غلاف كبير'], ['ticket', 'لوحة تذكرة التواصل'], ['chat', 'مساعد ذكي (اعرف عنا)']];
@@ -523,7 +523,7 @@ document.addEventListener('click', async ev => {
       try {
         let ans = null, ai = inp.dataset.ai === '1' ? await aiAnswer(q) : null;
         if (ai) ans = { t: ai };
-        else ans = localAnswer(q) || { t: 'لم أجد إجابة عن سؤالك في محتوى الموقع. يمكنك مراسلة الإدارة من صفحة «تواصل معنا».' };
+        else ans = localAnswer(q) || { t: 'لم أجد إجابة عن سؤالك في محتوى الموقع، والإجابة عن الأسئلة العامة تحتاج الاتصال بالذكاء الاصطناعي وهو غير متاح الآن. أعد المحاولة بعد قليل، أو راسل الإدارة من صفحة «تواصل معنا».' };
         CHAT[CHAT.indexOf(typing)] = { r: 'b', t: ans.t, links: ans.links || [] };
       } catch (x) { CHAT[CHAT.indexOf(typing)] = { r: 'b', t: 'حدث خطأ. حاول مرة أخرى.', err: 1 }; }
       chatBusy = false; chatDraw(); const i2 = $('#chatq'); if (i2) i2.focus();
