@@ -325,3 +325,33 @@ a.bar:hover::after{transform:translateX(-8px)}
 
 @media(prefers-reduced-motion:reduce){.hero::before,.hero::after,#ticker b{animation:none}#prog{display:none}.rv-on .rv{opacity:1;transform:none;transition:none}.card:hover,.card:hover img{transform:none}}
 @media print{.rv-on .rv{opacity:1!important;transform:none!important}.hero::before,.hero::after,#prog{display:none}}
+
+
+/* ================= صفحة live: عرض صور واحد متبدّل ================= */
+.wrap.live{max-width:1200px}
+.lv{position:relative;border-radius:24px;overflow:hidden;background:#0b1522;box-shadow:var(--sh2);margin:16px 0 24px;isolation:isolate}
+.lv-track{position:relative;height:clamp(300px,64vh,680px)}
+.lv-s{position:absolute;inset:0;margin:0;opacity:0;transition:opacity 1s ease;visibility:hidden}
+.lv-s.on{opacity:1;visibility:visible;z-index:1}
+.lv-s img{width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in;transform:scale(1)}
+.lv-s.on img{animation:kb 7s ease-out both}
+@keyframes kb{from{transform:scale(1)}to{transform:scale(1.07)}}
+.lv-s::after{content:"";position:absolute;inset:auto 0 0 0;height:60%;background:linear-gradient(0deg,rgba(6,14,26,.88),transparent);pointer-events:none}
+.lv-s figcaption{position:absolute;z-index:2;inset-inline:0;bottom:0;padding:0 clamp(18px,4vw,48px) 64px;color:#fff;pointer-events:none}
+.lv-s figcaption time{display:block;font-size:.85rem;opacity:.8;margin-bottom:6px}
+.lv-s figcaption p{margin:0;font-family:var(--head);font-weight:800;font-size:clamp(1.3rem,3.4vw,2.4rem);line-height:1.6;max-width:760px;text-wrap:balance}
+.lv-badge{position:absolute;z-index:4;top:18px;inset-inline-start:18px;display:flex;align-items:center;background:rgba(10,20,35,.6);backdrop-filter:blur(8px);color:#fff;padding:5px 14px 5px 12px;border-radius:999px;font-weight:600;font-size:.9rem}
+.lv-badge .livedot{margin-inline-end:8px}
+.lv-nav{position:absolute;z-index:4;top:50%;transform:translateY(-50%);width:50px;height:50px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(10,20,35,.45);backdrop-filter:blur(8px);color:#fff;font-size:1.9rem;line-height:1;cursor:pointer;padding:0 0 4px}
+.lv-nav:hover{background:rgba(201,154,59,.9);color:#1b1404}
+.lv-prev{inset-inline-start:16px}.lv-next{inset-inline-end:16px}
+.lv-pp{position:absolute;z-index:4;top:18px;inset-inline-end:18px;width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(10,20,35,.5);backdrop-filter:blur(8px);color:#fff;font-size:.72rem;cursor:pointer}
+.lv-dots{position:absolute;z-index:4;bottom:24px;inset-inline:0;display:flex;justify-content:center;gap:8px;flex-wrap:wrap;padding:0 70px}
+.lv-dots button{width:10px;height:10px;border-radius:999px;border:0;padding:0;background:rgba(255,255,255,.5);cursor:pointer;transition:width .3s,background .3s}
+.lv-dots button.on{width:30px;background:var(--gold)}
+.lv-bar{position:absolute;z-index:4;bottom:0;inset-inline:0;height:4px;background:var(--gold);transform:scaleX(0);transform-origin:100% 50%}
+.lv.playing .lv-bar{animation:lvbar 5s linear both}
+@keyframes lvbar{to{transform:scaleX(1)}}
+.live .row .grow{flex:1;min-width:160px}
+@media(max-width:520px){.lv{border-radius:16px}.lv-nav{width:40px;height:40px;font-size:1.5rem}.lv-s figcaption{padding-bottom:56px}}
+@media(prefers-reduced-motion:reduce){.lv-s{transition:none}.lv-s.on img{animation:none}.lv.playing .lv-bar{animation:none}}
